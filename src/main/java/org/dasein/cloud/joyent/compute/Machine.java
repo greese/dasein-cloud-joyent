@@ -53,6 +53,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class Machine implements VirtualMachineSupport {
+    Logger logger = SmartDataCenter.getLogger(Machine.class, "std");
+
     private SmartDataCenter provider;
     
     Machine(SmartDataCenter sdc) { provider = sdc; }
@@ -481,7 +483,7 @@ public class Machine implements VirtualMachineSupport {
         if( VmState.RUNNING.equals(currentState) ) {
             method.doPostString(provider.getEndpoint(), "machines/" + vmId, "action=stop");
         }
-        while( !VmState.PAUSED.equals(currentState) && System.currentTimeMillis() < timeout ) {
+        while( !VmState.STOPPED.equals(currentState) && !VmState.TERMINATED.equals(currentState) && System.currentTimeMillis() < timeout ) {
             try { Thread.sleep(10000); }
             catch( InterruptedException e ) { /* ignore */ }
             vm = getVirtualMachine(vmId);
@@ -491,6 +493,18 @@ public class Machine implements VirtualMachineSupport {
             currentState = vm.getCurrentState();
         }
         method.doDelete(provider.getEndpoint(), "machines/" + vmId);
+        if( timeout < CalendarWrapper.MINUTE * 5 ) {
+            timeout = System.currentTimeMillis() + (CalendarWrapper.MINUTE * 5);
+        }
+        while( System.currentTimeMillis() < timeout ) {
+            if( vm == null || VmState.TERMINATED.equals(vm.getCurrentState()) ) {
+                return;
+            }
+            try { Thread.sleep(10000L); }
+            catch( InterruptedException ignore ) { }
+            vm = getVirtualMachine(vmId);
+        }
+        logger.warn("System timed out waiting for VM termination");
     }
 
     @Override
@@ -502,8 +516,6 @@ public class Machine implements VirtualMachineSupport {
         if( ob == null ) {
             return null;
         }
-        Logger logger = SmartDataCenter.getLogger(Machine.class, "std");
-        
         try {
             VirtualMachine vm = new VirtualMachine();
             
@@ -615,13 +627,13 @@ public class Machine implements VirtualMachineSupport {
                     vm.setCurrentState(VmState.STOPPING);
                 }
                 else if( s.equalsIgnoreCase("stopped") ) {
-                    vm.setCurrentState(VmState.PAUSED);
+                    vm.setCurrentState(VmState.STOPPED);
                 }
                 else if( s.equalsIgnoreCase("deleted") ) {
                     vm.setCurrentState(VmState.TERMINATED);
                 }
                 else {
-                    logger.warn("toVirtualMachine(): Unknown VM state: " + s);
+                    logger.warn("DEBUG: Unknown Joyent VM state: " + s);
                     vm.setCurrentState(VmState.PENDING);
                 }
             }
@@ -660,8 +672,6 @@ public class Machine implements VirtualMachineSupport {
     static private HashMap<String,String> urnMapping = new HashMap<String,String>();
     
     private String getImageIdFromUrn(String urn) throws CloudException, InternalException {
-        Logger logger = SmartDataCenter.getLogger(Machine.class, "std");
-        
         if( logger.isTraceEnabled() ) {
             logger.trace("ENTER: " + Machine.class.getName() + ".getImageIdFromUrn(" + urn + ")");
         }
