@@ -22,15 +22,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.OperationNotSupportedException;
+import org.dasein.cloud.Requirement;
 import org.dasein.cloud.Tag;
 import org.dasein.cloud.compute.Architecture;
 import org.dasein.cloud.compute.MachineImage;
 import org.dasein.cloud.compute.Platform;
+import org.dasein.cloud.compute.VMLaunchOptions;
 import org.dasein.cloud.compute.VirtualMachine;
 import org.dasein.cloud.compute.VirtualMachineProduct;
 import org.dasein.cloud.compute.VirtualMachineSupport;
@@ -40,6 +43,8 @@ import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.joyent.JoyentMethod;
 import org.dasein.cloud.joyent.SmartDataCenter;
 import org.dasein.util.CalendarWrapper;
+import org.dasein.util.uom.storage.Megabyte;
+import org.dasein.util.uom.storage.Storage;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -53,7 +58,7 @@ public class Machine implements VirtualMachineSupport {
     Machine(SmartDataCenter sdc) { provider = sdc; }
     
     @Override
-    public void boot(@Nonnull String vmId) throws InternalException, CloudException {
+    public void start(@Nonnull String vmId) throws InternalException, CloudException {
         JoyentMethod method = new JoyentMethod(provider);
         
         method.doPostString(provider.getEndpoint(), "machines/" + vmId, "action=start");
@@ -128,6 +133,11 @@ public class Machine implements VirtualMachineSupport {
         return "";
     }
 
+    @Override
+    public int getMaximumVirtualMachineCount() throws CloudException, InternalException {
+        return -2;
+    }
+
     static private HashMap<String,VirtualMachineProduct> productCache = new HashMap<String,VirtualMachineProduct>();
     
     @Override
@@ -136,7 +146,7 @@ public class Machine implements VirtualMachineSupport {
             return productCache.get(productId);
         }
         for( VirtualMachineProduct prd : listProducts(Architecture.I64) ) {
-            if( prd.getProductId().equals(productId) ) {
+            if( prd.getProviderProductId().equals(productId) ) {
                 productCache.put(productId, prd);
                 return prd;
             }
@@ -177,6 +187,41 @@ public class Machine implements VirtualMachineSupport {
     }
 
     @Override
+    public @Nonnull Requirement identifyPasswordRequirement() throws CloudException, InternalException {
+        return Requirement.NONE;
+    }
+
+    @Override
+    public @Nonnull Requirement identifyRootVolumeRequirement() throws CloudException, InternalException {
+        return Requirement.NONE;
+    }
+
+    @Override
+    public @Nonnull Requirement identifyShellKeyRequirement() throws CloudException, InternalException {
+        return Requirement.NONE;
+    }
+
+    @Override
+    public @Nonnull Requirement identifyVlanRequirement() throws CloudException, InternalException {
+        return Requirement.NONE;
+    }
+
+    @Override
+    public boolean isAPITerminationPreventable() throws CloudException, InternalException {
+        return false;
+    }
+
+    @Override
+    public boolean isBasicAnalyticsSupported() throws CloudException, InternalException {
+        return false;
+    }
+
+    @Override
+    public boolean isExtendedAnalyticsSupported() throws CloudException, InternalException {
+        return false;
+    }
+
+    @Override
     public boolean isSubscribed() throws CloudException, InternalException {
         JoyentMethod method = new JoyentMethod(provider);
         
@@ -185,28 +230,93 @@ public class Machine implements VirtualMachineSupport {
     }
 
     @Override
-    public @Nonnull VirtualMachine launch(@Nonnull String fromMachineImageId, @Nonnull VirtualMachineProduct product, @Nullable String dataCenterId, @Nonnull String name, @Nonnull String description, @Nullable String withKeypairId, @Nullable String inVlanId, boolean withAnalytics, boolean asSandbox, @Nullable String... firewallIds) throws InternalException, CloudException {
+    public boolean isUserDataSupported() throws CloudException, InternalException {
+        return true;
+    }
+
+    @Override
+    public @Nonnull VirtualMachine launch(VMLaunchOptions withLaunchOptions) throws CloudException, InternalException {
+        JoyentMethod method = new JoyentMethod(provider);
+        HashMap<String,Object> post = new HashMap<String,Object>();
+
+        String userScript = withLaunchOptions.getUserData();
+
+        if( userScript != null ) {
+            post.put("metadata.user-script", userScript);
+        }
+
+        String name = validateName(withLaunchOptions.getHostName());
+
+        post.put("name", name);
+        post.put("package", withLaunchOptions.getStandardProductId());
+        post.put("dataset", withLaunchOptions.getMachineImageId());
+
+        Map<String,Object> meta = withLaunchOptions.getMetaData();
+
+        if( meta.size() > 0 ) {
+            for( Map.Entry<String,Object> entry : meta.entrySet() ) {
+                post.put("metadata." + entry.getKey(), entry.getValue().toString());
+            }
+        }
+        post.put("metadata.dsnTrueImage", withLaunchOptions.getMachineImageId());
+        post.put("metadata.dsnTrueProduct", withLaunchOptions.getStandardProductId());
+        post.put("metadata.dsnDescription", withLaunchOptions.getDescription());
+        String json = method.doPostString(provider.getEndpoint(), "machines", new JSONObject(post).toString());
+
+        if( json == null ) {
+            throw new CloudException("No machine was created");
+        }
+        try {
+            return toVirtualMachine(new JSONObject(json));
+        }
+        catch( JSONException e ) {
+            throw new CloudException(e);
+        }
+    }
+
+    @Override
+    public @Nonnull VirtualMachine launch(@Nonnull String fromMachineImageId, @Nonnull VirtualMachineProduct product, @Nonnull String dataCenterId, @Nonnull String name, @Nonnull String description, @Nullable String withKeypairId, @Nullable String inVlanId, boolean withAnalytics, boolean asSandbox, @Nullable String... firewallIds) throws InternalException, CloudException {
         return launch(fromMachineImageId, product, dataCenterId, name, description, withKeypairId, inVlanId, withAnalytics, asSandbox, firewallIds, new Tag[0]);
     }
 
     @Override
-    public @Nonnull VirtualMachine launch(@Nonnull String fromMachineImageId, @Nonnull VirtualMachineProduct product, @Nullable String dataCenterId, @Nonnull String name, @Nonnull String description, @Nullable String withKeypairId, @Nullable String inVlanId, boolean withAnalytics, boolean asSandbox, @Nullable String[] firewallIds, @Nullable Tag... tags) throws InternalException, CloudException {
-        JoyentMethod method = new JoyentMethod(provider);
-        HashMap<String,Object> post = new HashMap<String,Object>();
-        
-        String startupScript = "#!/usr/bin/env sh\n"
-           		+"\n"
-        		+"export PATH=/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin\n"
-           		+"\n"
-        		+"if [[ $EUID -ne 0 ]] ; then\n"
-        		+"  echo \"Must be root to install enstratus package\"\n"
-           		+"  exit 1\n"
-           		+"fi\n"
-           		+"\n"
-           		+"echo \"==> Updating package lists...\"\n"
-          		+"out=$(pkgin update)\n"
-           		+"if [[ $? -ne 0 ]] ; then\n"
-           		+"  echo \"error updating package lists\"\n"
+    public @Nonnull VirtualMachine launch(@Nonnull String fromMachineImageId, @Nonnull VirtualMachineProduct product, @Nonnull String dataCenterId, @Nonnull String name, @Nonnull String description, @Nullable String withKeypairId, @Nullable String inVlanId, boolean withAnalytics, boolean asSandbox, @Nullable String[] firewallIds, @Nullable Tag... tags) throws InternalException, CloudException {
+        VMLaunchOptions options;
+
+        if( inVlanId == null ) {
+            options = VMLaunchOptions.getInstance(product.getProviderProductId(), fromMachineImageId, name, description).inDataCenter(dataCenterId);
+        }
+        else {
+            options = VMLaunchOptions.getInstance(product.getProviderProductId(), fromMachineImageId, name, description).inVlan(null, dataCenterId, inVlanId);
+        }
+        if( withKeypairId != null ) {
+            options = options.withBoostrapKey(withKeypairId);
+        }
+        if( tags != null ) {
+            for( Tag t : tags ) {
+                options = options.withMetaData(t.getKey(), t.getValue());
+            }
+        }
+        if( firewallIds != null ) {
+            options = options.behindFirewalls(firewallIds);
+        }
+
+        // this is backwards compat for some old enStratus stuff in Joyent
+        // you really should be using the launch(VMLaunchOptions) and you won't be burdened
+        // by this legacy stuff
+        options = options.withUserData("#!/usr/bin/env sh\n"
+                +"\n"
+                +"export PATH=/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin\n"
+                +"\n"
+                +"if [[ $EUID -ne 0 ]] ; then\n"
+                +"  echo \"Must be root to install enstratus package\"\n"
+                +"  exit 1\n"
+                +"fi\n"
+                +"\n"
+                +"echo \"==> Updating package lists...\"\n"
+                +"out=$(pkgin update)\n"
+                +"if [[ $? -ne 0 ]] ; then\n"
+                +"  echo \"error updating package lists\"\n"
                 +"  exit 1\n"
                 +"fi\n"
                 +"\n"
@@ -222,59 +332,8 @@ public class Machine implements VirtualMachineSupport {
                 +"if [[ $? -ne 0 ]] ; then\n"
                 +"  echo \"error installing enstratus agent\"\n"
                 +"  exit 1\n"
-                +"fi\n";
-        // TODO: FOR DEV ONLY... REMOVE BEFORE PROD!
-//        startupScript += "configfile='/opt/local/enstratus/ws/tomcat/webapps/ROOT/WEB-INF/classes/enstratus-webservices.cfg'\n"
-//        		+"\n"
-//                +"echo \"==> Updating config file for dev environment...\"\n"
-//                +"out=$(sed -i \"s/environment=production/environment=staging/\" $configfile)\n"
-//                +"if [[ $? -ne 0 ]] ; then\n"
-//                +"  echo \"error updating enstratus environment config\"\n"
-//                +"  exit 1\n"
-//                +"fi\n"
-//                +"out=$(sed -i \"s/#provisioningProxy=255.255.255.255:3302/provisioningProxy=75.101.177.183:3302/\" $configfile)\n"
-//                +"if [[ $? -ne 0 ]] ; then\n"
-//                +"  echo \"error updating enstratus proxy config\"\n"
-//                +"  exit 1\n"
-//                +"fi\n"
-//                +"\n"
-//                +"svcadm restart enstratus";
-
-
-        // Since Joyent stopped using meaningful naming conventions for SmartOS machines,
-        // we'll need to just always try to run the user script to install our agent.  
-        // That'll learn 'em.
-    	post.put("metadata.user-script", startupScript);	
-
-    	
-    	name = validateName(name);
-        post.put("name", name);
-        post.put("package", product.getProductId());
-        post.put("dataset", fromMachineImageId);
-
-        //MachineImage img = provider.getComputeServices().getImageSupport().getMachineImage(fromMachineImageId);
-        //if (img.getName().toLowerCase().contains("smartos")) {
-        //	post.put("metadata.user-script", startupScript);
-    	//}
-        if( tags != null ) {
-            for( Tag tag : tags ) {
-                post.put("metadata." + tag.getKey(), tag.getValue());
-            }
-        }
-        post.put("metadata.dsnTrueImage", fromMachineImageId);
-        post.put("metadata.dsnTrueProduct", product.getProductId());
-        post.put("metadata.dsnDescription", description);
-        String json = method.doPostString(provider.getEndpoint(), "machines", new JSONObject(post).toString());
-        
-        if( json == null ) {
-            throw new CloudException("No machine was created");
-        }
-        try {
-            return toVirtualMachine(new JSONObject(json));
-        }
-        catch( JSONException e ) {
-            throw new CloudException(e);
-        }
+                +"fi\n");
+        return launch(options);
     }
 
     @Override
@@ -302,14 +361,14 @@ public class Machine implements VirtualMachineSupport {
                     prd.setName(ob.getString("name"));
                 }
                 if( ob.has("memory") ) {
-                    prd.setRamInMb(ob.getInt("memory"));
+                    prd.setRamSize(new Storage<Megabyte>(ob.getInt("memory"), Storage.MEGABYTE));
                 }
                 if( ob.has("disk") ) {
-                    prd.setDiskSizeInGb(ob.getInt("disk")/1024);
+                    prd.setRootVolumeSize(new Storage<Megabyte>(ob.getInt("disk"), Storage.MEGABYTE));
                 }
                 prd.setCpuCount(1);
                 prd.setDescription(prd.getName());
-                prd.setProductId(prd.getName());
+                prd.setProviderProductId(prd.getName());
                 products.add(prd);
             }
             return products;
@@ -317,6 +376,11 @@ public class Machine implements VirtualMachineSupport {
         catch( JSONException e ) {
             throw new CloudException(e);
         }
+    }
+
+    @Override
+    public Iterable<Architecture> listSupportedArchitectures() throws InternalException, CloudException {
+        return Collections.singletonList(Architecture.I64);
     }
 
     @Override
@@ -348,6 +412,11 @@ public class Machine implements VirtualMachineSupport {
 
     @Override
     public void pause(@Nonnull String vmId) throws InternalException, CloudException {
+        throw new CloudException("Pause/unpause not supported");
+    }
+
+    @Override
+    public void stop(@Nonnull String vmId) throws InternalException, CloudException {
         JoyentMethod method = new JoyentMethod(provider);
         
         method.doPostString(provider.getEndpoint(), "machines/" + vmId, "action=stop");
@@ -361,8 +430,33 @@ public class Machine implements VirtualMachineSupport {
     }
 
     @Override
+    public void resume(@Nonnull String vmId) throws CloudException, InternalException {
+        throw new CloudException("Suspend/resume not supported");
+    }
+
+    @Override
     public boolean supportsAnalytics() throws CloudException, InternalException {
         return false;
+    }
+
+    @Override
+    public boolean supportsPauseUnpause(@Nonnull VirtualMachine vm) {
+        return false;
+    }
+
+    @Override
+    public boolean supportsStartStop(@Nonnull VirtualMachine vm) {
+        return true;
+    }
+
+    @Override
+    public boolean supportsSuspendResume(@Nonnull VirtualMachine vm) {
+        return false;
+    }
+
+    @Override
+    public void suspend(@Nonnull String vmId) throws CloudException, InternalException {
+        throw new CloudException("Suspend/resume not supported");
     }
 
     @Override
@@ -397,6 +491,11 @@ public class Machine implements VirtualMachineSupport {
             currentState = vm.getCurrentState();
         }
         method.doDelete(provider.getEndpoint(), "machines/" + vmId);
+    }
+
+    @Override
+    public void unpause(@Nonnull String vmId) throws CloudException, InternalException {
+        throw new CloudException("Pause/unpause not supported");
     }
 
     private VirtualMachine toVirtualMachine(JSONObject ob) throws CloudException, InternalException {
@@ -485,7 +584,7 @@ public class Machine implements VirtualMachineSupport {
                             vm.setProviderMachineImageId(md.getString(name));
                         }
                         else if( name.equals("dsnTrueProduct") ) {
-                            vm.setProduct(getProduct(md.getString(name)));
+                            vm.setProductId(md.getString(name));
                         }
                         else {
                             vm.addTag(name, md.getString(name));
@@ -534,21 +633,21 @@ public class Machine implements VirtualMachineSupport {
                 vm.setDescription(vm.getName());
             }
             discover(vm);
-            if( vm.getProduct() == null ) {
+            if( vm.getProductId() == null ) {
                 VirtualMachineProduct d = null;
                 int disk, ram;
                 
-                disk = ob.getInt("disk")/1024;
+                disk = ob.getInt("disk");
                 ram = ob.getInt("memory");
                 for( VirtualMachineProduct prd : listProducts(vm.getArchitecture()) ) {
                     d = prd;
-                    if( prd.getDiskSizeInGb() == disk && prd.getRamInMb() == ram ) {
-                        vm.setProduct(prd);
+                    if( prd.getRootVolumeSize().convertTo(Storage.MEGABYTE).intValue() == disk && prd.getRamSize().intValue() == ram ) {
+                        vm.setProductId(prd.getProviderProductId());
                         break;
                     }
                 }
-                if( vm.getProduct() == null ) {
-                    vm.setProduct(d);
+                if( vm.getProductId() == null ) {
+                    vm.setProductId(d.getProviderProductId());
                 }
             }
             return vm;

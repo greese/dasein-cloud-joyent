@@ -1,4 +1,8 @@
 dasein-cloud-joyent
 ===================
 
-Dasein Cloud implementation for the Joyent Cloud. For more information on Dasein Cloud, see the Dasein Cloud home page at https://github.com/greese/dasein-cloud.
+The Dasein Cloud Joyent submodule to the [Dasein Cloud](https://github.com/greese/dasein-cloud) project provides
+an implementation of the Dasein Cloud API for the Joyent Cloud and the SDC platform.
+
+* [Get started with Dasein Cloud](https://github.com/dasein-cloud)
+* [Get started with Dasein Cloud + Joyent](https://github.com/greese/dasein-cloud-joyent/wiki)
