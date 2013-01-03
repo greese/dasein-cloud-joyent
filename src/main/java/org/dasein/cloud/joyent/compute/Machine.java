@@ -29,11 +29,15 @@ import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.OperationNotSupportedException;
 import org.dasein.cloud.Requirement;
+import org.dasein.cloud.ResourceStatus;
 import org.dasein.cloud.Tag;
 import org.dasein.cloud.compute.Architecture;
+import org.dasein.cloud.compute.ImageClass;
 import org.dasein.cloud.compute.MachineImage;
 import org.dasein.cloud.compute.Platform;
 import org.dasein.cloud.compute.VMLaunchOptions;
+import org.dasein.cloud.compute.VMScalingCapabilities;
+import org.dasein.cloud.compute.VMScalingOptions;
 import org.dasein.cloud.compute.VirtualMachine;
 import org.dasein.cloud.compute.VirtualMachineProduct;
 import org.dasein.cloud.compute.VirtualMachineSupport;
@@ -67,8 +71,18 @@ public class Machine implements VirtualMachineSupport {
     }
 
     @Override
+    public VirtualMachine alterVirtualMachine(@Nonnull String vmId, @Nonnull VMScalingOptions options) throws InternalException, CloudException {
+        throw new OperationNotSupportedException("Vertical scaling not currently supported");
+    }
+
+    @Override
     public @Nonnull VirtualMachine clone(@Nonnull String vmId, @Nullable String intoDcId, @Nonnull String name, @Nonnull String description, boolean powerOn, @Nullable String... firewallIds) throws InternalException, CloudException {
         throw new OperationNotSupportedException("Cloning is not currently suported");
+    }
+
+    @Override
+    public @Nullable VMScalingCapabilities describeVerticalScalingCapabilities() throws CloudException, InternalException {
+        return null;
     }
 
     @Override
@@ -99,7 +113,7 @@ public class Machine implements VirtualMachineSupport {
                 vm.setPlatform(Platform.UNKNOWN);
                 return;
             }
-            MachineImage img = provider.getComputeServices().getImageSupport().getMachineImage(miId);
+            MachineImage img = provider.getComputeServices().getImageSupport().getImage(miId);
             
             if( img == null ) {
                 vm.setArchitecture(Architecture.I64);
@@ -133,6 +147,11 @@ public class Machine implements VirtualMachineSupport {
     @Override
     public @Nonnull String getConsoleOutput(@Nonnull String vmId) throws InternalException, CloudException {
         return "";
+    }
+
+    @Override
+    public int getCostFactor(@Nonnull VmState state) throws InternalException, CloudException {
+        return 100;
     }
 
     @Override
@@ -189,6 +208,11 @@ public class Machine implements VirtualMachineSupport {
     }
 
     @Override
+    public @Nonnull Requirement identifyImageRequirement(@Nonnull ImageClass cls) throws CloudException, InternalException {
+        return (cls.equals(ImageClass.MACHINE) ? Requirement.REQUIRED : Requirement.NONE);
+    }
+
+    @Override
     public @Nonnull Requirement identifyPasswordRequirement() throws CloudException, InternalException {
         return Requirement.NONE;
     }
@@ -200,6 +224,11 @@ public class Machine implements VirtualMachineSupport {
 
     @Override
     public @Nonnull Requirement identifyShellKeyRequirement() throws CloudException, InternalException {
+        return Requirement.NONE;
+    }
+
+    @Override
+    public @Nonnull Requirement identifyStaticIPRequirement() throws CloudException, InternalException {
         return Requirement.NONE;
     }
 
@@ -237,7 +266,7 @@ public class Machine implements VirtualMachineSupport {
     }
 
     @Override
-    public @Nonnull VirtualMachine launch(VMLaunchOptions withLaunchOptions) throws CloudException, InternalException {
+    public @Nonnull VirtualMachine launch(@Nonnull VMLaunchOptions withLaunchOptions) throws CloudException, InternalException {
         JoyentMethod method = new JoyentMethod(provider);
         HashMap<String,Object> post = new HashMap<String,Object>();
 
@@ -386,6 +415,28 @@ public class Machine implements VirtualMachineSupport {
     }
 
     @Override
+    public @Nonnull Iterable<ResourceStatus> listVirtualMachineStatus() throws InternalException, CloudException {
+        JoyentMethod method = new JoyentMethod(provider);
+
+        try {
+            JSONArray machines = new JSONArray(method.doGetJson(provider.getEndpoint(), "machines"));
+            ArrayList<ResourceStatus> vms = new ArrayList<ResourceStatus>();
+
+            for( int i=0; i<machines.length(); i++ ) {
+                ResourceStatus vm = toStatus(machines.getJSONObject(i));
+
+                if( vm != null ) {
+                    vms.add(vm);
+                }
+            }
+            return vms;
+        }
+        catch( JSONException e ) {
+            throw new CloudException(e);
+        }
+    }
+
+    @Override
     public @Nonnull Iterable<VirtualMachine> listVirtualMachines() throws InternalException, CloudException {
         JoyentMethod method = new JoyentMethod(provider);
 
@@ -419,8 +470,13 @@ public class Machine implements VirtualMachineSupport {
 
     @Override
     public void stop(@Nonnull String vmId) throws InternalException, CloudException {
+        stop(vmId, false);
+    }
+
+    @Override
+    public void stop(@Nonnull String vmId, boolean force) throws InternalException, CloudException {
         JoyentMethod method = new JoyentMethod(provider);
-        
+
         method.doPostString(provider.getEndpoint(), "machines/" + vmId, "action=stop");
     }
 
@@ -512,6 +568,11 @@ public class Machine implements VirtualMachineSupport {
         throw new CloudException("Pause/unpause not supported");
     }
 
+    @Override
+    public void updateTags(@Nonnull String vmId, @Nonnull Tag... tags) throws CloudException, InternalException {
+        // NO-OP
+    }
+
     private VirtualMachine toVirtualMachine(JSONObject ob) throws CloudException, InternalException {
         if( ob == null ) {
             return null;
@@ -527,7 +588,7 @@ public class Machine implements VirtualMachineSupport {
             vm.setProviderOwnerId(provider.getContext().getAccountNumber());
             vm.setProviderRegionId(provider.getContext().getRegionId());
             vm.setTerminationTimestamp(-1L);
-            
+
             if(ob.has("id") ) {
                 vm.setProviderVirtualMachineId(ob.getString("id"));
             }
@@ -613,28 +674,11 @@ public class Machine implements VirtualMachineSupport {
             vm.setPausable(false);
             vm.setRebootable(false);
             if( ob.has("state") ) {
-                String s = ob.getString("state");
-                
-                if( s.equalsIgnoreCase("running") ) {
-                    vm.setCurrentState(VmState.RUNNING);
+                vm.setCurrentState(toState(ob.getString("state")));
+
+                if( VmState.RUNNING.equals(vm.getCurrentState()) ) {
                     vm.setPausable(true);
                     vm.setRebootable(true);
-                }
-                else if( s.equalsIgnoreCase("provisioning") ) {
-                    vm.setCurrentState(VmState.PENDING);
-                }
-                else if( s.equalsIgnoreCase("stopping") ) {
-                    vm.setCurrentState(VmState.STOPPING);
-                }
-                else if( s.equalsIgnoreCase("stopped") ) {
-                    vm.setCurrentState(VmState.STOPPED);
-                }
-                else if( s.equalsIgnoreCase("deleted") ) {
-                    vm.setCurrentState(VmState.TERMINATED);
-                }
-                else {
-                    logger.warn("DEBUG: Unknown Joyent VM state: " + s);
-                    vm.setCurrentState(VmState.PENDING);
                 }
             }
             vm.setLastBootTimestamp(vm.getCreationTimestamp());
@@ -669,6 +713,52 @@ public class Machine implements VirtualMachineSupport {
         }
     }
 
+    private @Nonnull VmState toState(@Nonnull String s) {
+        if( s.equalsIgnoreCase("running") ) {
+            return VmState.RUNNING;
+        }
+        else if( s.equalsIgnoreCase("provisioning") ) {
+            return VmState.PENDING;
+        }
+        else if( s.equalsIgnoreCase("stopping") ) {
+            return VmState.STOPPING;
+        }
+        else if( s.equalsIgnoreCase("stopped") ) {
+            return VmState.STOPPED;
+        }
+        else if( s.equalsIgnoreCase("deleted") ) {
+            return VmState.TERMINATED;
+        }
+        else {
+            logger.warn("DEBUG: Unknown Joyent VM state: " + s);
+            return VmState.PENDING;
+        }
+    }
+
+    private @Nullable ResourceStatus toStatus(@Nullable JSONObject ob) throws CloudException, InternalException {
+        if( ob == null ) {
+            return null;
+        }
+        try {
+            VmState state = VmState.PENDING;
+            String vmId = null;
+
+            if(ob.has("id") ) {
+                vmId = ob.getString("id");
+            }
+            if( ob.has("state") ) {
+                state = toState(ob.getString("state"));
+            }
+            if( vmId == null ) {
+                return null;
+            }
+            return new ResourceStatus(vmId, state);
+        }
+        catch( JSONException e ) {
+            throw new CloudException(e);
+        }
+    }
+
     static private HashMap<String,String> urnMapping = new HashMap<String,String>();
     
     private String getImageIdFromUrn(String urn) throws CloudException, InternalException {
@@ -681,7 +771,7 @@ public class Machine implements VirtualMachineSupport {
             }
             System.out.println("");
             System.out.println("URN: " + urn);
-            MachineImage img = provider.getComputeServices().getImageSupport().getMachineImage(urn);
+            MachineImage img = provider.getComputeServices().getImageSupport().getImage(urn);
 
             if( img != null ) {
                 String id = img.getProviderMachineImageId();
