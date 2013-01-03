@@ -218,7 +218,7 @@
                 </property>
             </systemProperties> 
           <includes>
-            <include>**/JoyentTestSuite.java</include>
+            <!-- <include>**/JoyentTestSuite.java</include> -->
           </includes>
         </configuration>
       </plugin> 
