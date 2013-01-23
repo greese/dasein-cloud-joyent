@@ -124,6 +124,11 @@ public class Dataset implements MachineImageSupport {
     }
 
     @Override
+    public @Nonnull String getProviderTermForCustomImage(@Nonnull Locale locale, @Nonnull ImageClass cls) {
+        return getProviderTermForImage(locale, cls);
+    }
+
+    @Override
     public boolean hasPublicLibrary() {
         return true;
     }
@@ -282,6 +287,11 @@ public class Dataset implements MachineImageSupport {
 
     @Override
     public void remove(@Nonnull String machineImageId) throws CloudException, InternalException {
+        throw new OperationNotSupportedException("Removal not supported");
+    }
+
+    @Override
+    public void remove(@Nonnull String providerImageId, boolean checkState) throws CloudException, InternalException {
         throw new OperationNotSupportedException("Removal not supported");
     }
 
