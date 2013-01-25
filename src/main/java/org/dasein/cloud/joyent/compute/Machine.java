@@ -583,6 +583,21 @@ public class Machine implements VirtualMachineSupport {
         // NO-OP
     }
 
+    @Override
+    public void updateTags(@Nonnull String[] vmIds, @Nonnull Tag... tags) throws CloudException, InternalException {
+        // NO-OP
+    }
+
+    @Override
+    public void removeTags(@Nonnull String vmId, @Nonnull Tag... tags) throws CloudException, InternalException {
+        // NO-OP
+    }
+
+    @Override
+    public void removeTags(@Nonnull String[] vmIds, @Nonnull Tag... tags) throws CloudException, InternalException {
+        // NO-OP
+    }
+
     private VirtualMachine toVirtualMachine(JSONObject ob) throws CloudException, InternalException {
         if( ob == null ) {
             return null;

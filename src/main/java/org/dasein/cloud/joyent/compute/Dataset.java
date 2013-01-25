@@ -403,10 +403,24 @@ public class Dataset implements MachineImageSupport {
     }
 
     @Override
-    public void updateTags(@Nonnull String imageId, @Nonnull Tag... tags) throws CloudException, InternalException {
+    public void updateTags(@Nonnull String vmId, @Nonnull Tag... tags) throws CloudException, InternalException {
         // NO-OP
     }
 
+    @Override
+    public void updateTags(@Nonnull String[] vmIds, @Nonnull Tag... tags) throws CloudException, InternalException {
+        // NO-OP
+    }
+
+    @Override
+    public void removeTags(@Nonnull String vmId, @Nonnull Tag... tags) throws CloudException, InternalException {
+        // NO-OP
+    }
+
+    @Override
+    public void removeTags(@Nonnull String[] vmIds, @Nonnull Tag... tags) throws CloudException, InternalException {
+        // NO-OP
+    }
     private @Nullable MachineImage toMachineImage(@Nonnull ProviderContext ctx, @Nullable JSONObject json) throws JSONException {
         if( json == null ) {
             return null;
