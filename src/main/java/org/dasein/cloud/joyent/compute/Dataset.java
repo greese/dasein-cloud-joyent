@@ -118,8 +118,6 @@ public class Dataset extends AbstractImageSupport {
         if( cls != null && !cls.equals(ImageClass.MACHINE) ) {
             return Collections.emptyList();
         }
-        String account = (options == null ? null : options.getAccountNumber());
-
         ProviderContext ctx = provider.getContext();
 
         if( ctx == null ) {
@@ -134,7 +132,7 @@ public class Dataset extends AbstractImageSupport {
             for( int i=0; i<arr.length(); i++ ) {
                 MachineImage image = toMachineImage(ctx, arr.getJSONObject(i));
 
-                if( image != null && (account == null || account.equals(image.getProviderOwnerId())) ) {
+                if( image != null && (options == null || options.matches(image)) ) {
                     images.add(image);
                 }
             }
@@ -170,47 +168,6 @@ public class Dataset extends AbstractImageSupport {
         return Collections.singletonList(MachineImageType.VOLUME);
     }
 
-    private boolean matches(@Nonnull MachineImage image, @Nullable String keyword, @Nullable Platform platform, @Nullable Architecture architecture) {
-        if( architecture != null && !architecture.equals(image.getArchitecture()) ) {
-            return false;
-        }
-        if( platform != null && !platform.equals(Platform.UNKNOWN) ) {
-            Platform mine = image.getPlatform();
-
-            if( platform.isWindows() && !mine.isWindows() ) {
-                return false;
-            }
-            if( platform.isUnix() && !mine.isUnix() ) {
-                return false;
-            }
-            if( platform.isBsd() && !mine.isBsd() ) {
-                return false;
-            }
-            if( platform.isLinux() && !mine.isLinux() ) {
-                return false;
-            }
-            if( platform.equals(Platform.UNIX) ) {
-                if( !mine.isUnix() ) {
-                    return false;
-                }
-            }
-            else if( !platform.equals(mine) ) {
-                return false;
-            }
-        }
-        if( keyword != null ) {
-            keyword = keyword.toLowerCase();
-            if( !image.getDescription().toLowerCase().contains(keyword) ) {
-                if( !image.getName().toLowerCase().contains(keyword) ) {
-                    if( !image.getProviderMachineImageId().toLowerCase().contains(keyword) ) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
     @Override
     public @Nonnull String[] mapServiceAction(@Nonnull ServiceAction action) {
         return new String[0];
@@ -222,37 +179,12 @@ public class Dataset extends AbstractImageSupport {
     }
 
     @Override
-    public @Nonnull Iterable<MachineImage> searchMachineImages(@Nullable String keyword, @Nullable Platform platform, @Nullable Architecture architecture) throws CloudException, InternalException {
-        ArrayList<MachineImage> matches = new ArrayList<MachineImage>();
-
-        for( MachineImage img : searchImages(null, keyword, platform, architecture, ImageClass.MACHINE) ) {
-            matches.add(img);
-        }
-        for( MachineImage img : searchPublicImages(keyword, platform, architecture, ImageClass.MACHINE) ) {
-            matches.add(img);
-        }
-        return matches;
-    }
-
-    @Override
     public @Nonnull Iterable<MachineImage> searchImages(@Nullable String accountNumber, @Nullable String keyword, @Nullable Platform platform, @Nullable Architecture architecture, @Nullable ImageClass... imageClasses) throws CloudException, InternalException {
         return Collections.emptyList();
     }
 
     @Override
-    public @Nonnull Iterable<MachineImage> searchPublicImages(@Nullable String keyword, @Nullable Platform platform, @Nullable Architecture architecture, @Nullable ImageClass... imageClasses) throws CloudException, InternalException {
-        if( imageClasses != null && imageClasses.length > 0 ) {
-            boolean machine = false;
-
-            for( ImageClass cls : imageClasses ) {
-                if( !cls.equals(ImageClass.MACHINE) ) {
-                    machine = true;
-                }
-            }
-            if( !machine ) {
-                return Collections.emptyList();
-            }
-        }
+    public @Nonnull Iterable<MachineImage> searchPublicImages(@Nonnull ImageFilterOptions options) throws CloudException, InternalException {
         ProviderContext ctx = provider.getContext();
 
         if( ctx == null ) {
@@ -267,7 +199,7 @@ public class Dataset extends AbstractImageSupport {
             for( int i=0; i<arr.length(); i++ ) {
                 MachineImage image = toMachineImage(ctx, arr.getJSONObject(i));
 
-                if( image != null && matches(image, keyword, platform, architecture) ) {
+                if( image != null && options.matches(image) ) {
                     images.add(image);
                 }
             }
