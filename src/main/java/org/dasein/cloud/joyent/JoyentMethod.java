@@ -31,7 +31,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -44,8 +43,6 @@ import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.params.ClientPNames;
-import org.apache.http.client.params.CookiePolicy;
 import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
@@ -86,20 +83,6 @@ public class JoyentMethod {
             
             delete.addHeader("Accept", "application/json");
             delete.addHeader("X-Api-Version", "~6.5");
-
-            String auth;
-
-            try {
-                String userName = new String(provider.getContext().getAccessPublic(), "utf-8");
-                String password = new String(provider.getContext().getAccessPrivate(), "utf-8");
-
-                auth = new String(Base64.encodeBase64((userName + ":" + password).getBytes()));
-            }
-            catch( UnsupportedEncodingException e ) {
-                throw new InternalException(e);
-            }
-            delete.addHeader("Authorization", "Basic " + auth);
-
             if( wire.isDebugEnabled() ) {
                 wire.debug(delete.getRequestLine().toString());
                 for( Header header : delete.getAllHeaders() ) {
@@ -188,23 +171,9 @@ public class JoyentMethod {
             HttpClient client = getClient(endpoint);
             HttpGet get = new HttpGet(endpoint + "/my/" + resource);
 
-
-
             get.addHeader("Accept", "application/json");
             get.addHeader("X-Api-Version", "~6.5");
 
-            String auth;
-
-            try {
-                String userName = new String(provider.getContext().getAccessPublic(), "utf-8");
-                String password = new String(provider.getContext().getAccessPrivate(), "utf-8");
-
-                auth = new String(Base64.encodeBase64((userName + ":" + password).getBytes()));
-            }
-            catch( UnsupportedEncodingException e ) {
-                throw new InternalException(e);
-            }
-            get.addHeader("Authorization", "Basic " + auth);
             if( wire.isDebugEnabled() ) {
                 wire.debug(get.getRequestLine().toString());
                 for( Header header : get.getAllHeaders() ) {
@@ -313,18 +282,7 @@ public class JoyentMethod {
             
             get.addHeader("Accept", "application/json");
             get.addHeader("X-Api-Version", "~6.5");
-            String auth;
 
-            try {
-                String userName = new String(provider.getContext().getAccessPublic(), "utf-8");
-                String password = new String(provider.getContext().getAccessPrivate(), "utf-8");
-
-                auth = new String(Base64.encodeBase64((userName + ":" + password).getBytes()));
-            }
-            catch( UnsupportedEncodingException e ) {
-                throw new InternalException(e);
-            }
-            get.addHeader("Authorization", "Basic " + auth);
             if( wire.isDebugEnabled() ) {
                 wire.debug(get.getRequestLine().toString());
                 for( Header header : get.getAllHeaders() ) {
@@ -418,17 +376,16 @@ public class JoyentMethod {
         }
     }
 
-    protected @Nonnull HttpClient getClient(@Nonnull String endpoint) throws CloudException, InternalException {
+    protected @Nonnull HttpClient getClient(String endpoint) throws CloudException, InternalException {
         ProviderContext ctx = provider.getContext();
 
         if( ctx == null ) {
             throw new CloudException("No context was defined for this request");
         }
-        //String endpoint = ctx.getEndpoint();
 
-        //if( endpoint == null ) {
-        //    throw new CloudException("No cloud endpoint was defined");
-        //}
+        if( endpoint == null ) {
+            throw new CloudException("No cloud endpoint was defined");
+        }
         boolean ssl = endpoint.startsWith("https");
         int targetPort;
         URI uri;
@@ -449,7 +406,7 @@ public class JoyentMethod {
         HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
         //noinspection deprecation
         HttpProtocolParams.setContentCharset(params, HTTP.UTF_8);
-        HttpProtocolParams.setUserAgent(params, "Dasein Cloud");
+        HttpProtocolParams.setUserAgent(params, "");
 
         Properties p = ctx.getCustomProperties();
 
@@ -466,20 +423,17 @@ public class JoyentMethod {
                 params.setParameter(ConnRoutePNames.DEFAULT_PROXY, new HttpHost(proxyHost, port, ssl ? "https" : "http"));
             }
         }
-
-        params.setParameter(ClientPNames.COOKIE_POLICY, CookiePolicy.IGNORE_COOKIES);
         DefaultHttpClient client = new DefaultHttpClient(params);
-        /*
+
         try {
             String userName = new String(ctx.getAccessPublic(), "utf-8");
             String password = new String(ctx.getAccessPrivate(), "utf-8");
 
-            client.getCredentialsProvider().setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(userName, password));
+            client.getCredentialsProvider().setCredentials(new AuthScope(targetHost.getHostName(), targetHost.getPort()), new UsernamePasswordCredentials(userName, password));
         }
         catch( UnsupportedEncodingException e ) {
             throw new InternalException(e);
         }
-        */
         return client;
     }
     
@@ -630,18 +584,7 @@ public class JoyentMethod {
             }
             post.addHeader("Accept", "application/json");
             post.addHeader("X-Api-Version", VERSION);
-            String auth;
 
-            try {
-                String userName = new String(provider.getContext().getAccessPublic(), "utf-8");
-                String password = new String(provider.getContext().getAccessPrivate(), "utf-8");
-
-                auth = new String(Base64.encodeBase64((userName + ":" + password).getBytes()));
-            }
-            catch( UnsupportedEncodingException e ) {
-                throw new InternalException(e);
-            }
-            post.addHeader("Authorization", "Basic " + auth);
             try {
                 if( payload != null && payload.startsWith("action") ) {
                     //noinspection deprecation
@@ -775,18 +718,6 @@ public class JoyentMethod {
             post.addHeader("Content-Type", "application/octet-stream");
             post.addHeader("Accept", "application/json");
             post.addHeader("X-Api-Version", VERSION);
-            String auth;
-
-            try {
-                String userName = new String(provider.getContext().getAccessPublic(), "utf-8");
-                String password = new String(provider.getContext().getAccessPrivate(), "utf-8");
-
-                auth = new String(Base64.encodeBase64((userName + ":" + password).getBytes()));
-            }
-            catch( UnsupportedEncodingException e ) {
-                throw new InternalException(e);
-            }
-            post.addHeader("Authorization", "Basic " + auth);
 
             post.setEntity(new InputStreamEntity(stream, -1L, ContentType.APPLICATION_OCTET_STREAM));
             if( wire.isDebugEnabled() ) {
@@ -917,7 +848,6 @@ public class JoyentMethod {
             put.addHeader("Content-Type", "application/json");
             put.addHeader("Accept", "application/json");
             put.addHeader("X-Auth-Token", authToken);
-
             if( customHeaders != null ) {
                 for( Map.Entry<String, String> entry : customHeaders.entrySet() ) {
                     String val = (entry.getValue() == null ? "" : entry.getValue());
