@@ -181,8 +181,20 @@
         <configuration>
             <systemProperties>
                 <property>
+                    <name>providerClass</name>
+                    <value>${providerClass}</value>
+                </property>
+                <property>
                     <name>endpoint</name>
                     <value>${endpoint}</value>
+                </property>
+                <property>
+                    <name>accessPublic</name>
+                    <value>${accountNumber}</value>
+                </property>
+                <property>
+                    <name>accessPrivate</name>
+                    <value>${apiSharedKey}</value>
                 </property>
                 <property>
                     <name>accountNumber</name>
@@ -210,7 +222,7 @@
                 </property>
                 <property>
                     <name>test.region</name>
-                    <value>${test.region}</value>
+                    <value>${regionId}</value>
                 </property>
                 <property>
                     <name>test.dataCenter</name>
@@ -226,7 +238,7 @@
                 </property>
             </systemProperties> 
           <includes>
-           <include>**/JoyentTestSuite.java</include>
+           <include>**/TestSuite.java</include>
           </includes>
         </configuration>
       </plugin> 
