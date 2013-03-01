@@ -78,7 +78,7 @@ public class JoyentMethod {
             wire.debug(">>> [DELETE (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient();
+            HttpClient client = getClient(endpoint);
             HttpDelete delete = new HttpDelete(endpoint + "/my/" + resource);
             
             delete.addHeader("Accept", "application/json");
@@ -168,7 +168,7 @@ public class JoyentMethod {
             wire.debug(">>> [GET (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient();
+            HttpClient client = getClient(endpoint);
             HttpGet get = new HttpGet(endpoint + "/my/" + resource);
 
             get.addHeader("Accept", "application/json");
@@ -277,7 +277,7 @@ public class JoyentMethod {
             wire.debug(">>> [GET (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient();
+            HttpClient client = getClient(endpoint);
             HttpGet get = new HttpGet(endpoint + "/my/" + resource);
             
             get.addHeader("Accept", "application/json");
@@ -376,13 +376,12 @@ public class JoyentMethod {
         }
     }
 
-    protected @Nonnull HttpClient getClient() throws CloudException, InternalException {
+    protected @Nonnull HttpClient getClient(String endpoint) throws CloudException, InternalException {
         ProviderContext ctx = provider.getContext();
 
         if( ctx == null ) {
             throw new CloudException("No context was defined for this request");
         }
-        String endpoint = ctx.getEndpoint();
 
         if( endpoint == null ) {
             throw new CloudException("No cloud endpoint was defined");
@@ -448,7 +447,7 @@ public class JoyentMethod {
             wire.debug(">>> [POST (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient();
+            HttpClient client = getClient(endpoint);
             HttpPost post = new HttpPost(endpoint + "/my/" + resource);
             
             post.addHeader("Accept", "application/json");
@@ -574,7 +573,7 @@ public class JoyentMethod {
             wire.debug(">>> [POST (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient();
+            HttpClient client = getClient(endpoint);
             HttpPost post = new HttpPost(endpoint + "/my/" + resource);
             
             if( payload != null && payload.startsWith("action") ) {
@@ -713,7 +712,7 @@ public class JoyentMethod {
             wire.debug(">>> [POST (" + (new Date()) + ")] -> " + endpoint + "/" + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient();
+            HttpClient client = getClient(endpoint);
             HttpPost post = new HttpPost(endpoint + resource);
             
             post.addHeader("Content-Type", "application/octet-stream");
@@ -843,7 +842,7 @@ public class JoyentMethod {
             wire.debug(">>> [PUT (" + (new Date()) + ")] -> " + endpoint + "/" + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient();
+            HttpClient client = getClient(endpoint);
             HttpPut put = new HttpPut(endpoint + resource);
             
             put.addHeader("Content-Type", "application/json");
@@ -969,7 +968,7 @@ public class JoyentMethod {
             wire.debug(">>> [PUT (" + (new Date()) + ")] -> " + endpoint + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient();
+            HttpClient client = getClient(endpoint);
             HttpPut put = new HttpPut(endpoint + resource);
             
             put.addHeader("Content-Type", "application/json");
@@ -1097,7 +1096,7 @@ public class JoyentMethod {
             wire.debug(">>> [PUT (" + (new Date()) + ")] -> " + endpoint + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient();
+            HttpClient client = getClient(endpoint);
             HttpPut put = new HttpPut(endpoint + resource);
             
             put.addHeader("Content-Type", "application/octet-stream");
