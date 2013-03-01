@@ -18,8 +18,13 @@
 
 package org.dasein.cloud.joyent;
 
-import org.dasein.cloud.test.GlobalTestSuite;
+import junit.framework.Test;
 
-public class TestSuite extends GlobalTestSuite {
+import org.dasein.cloud.test.ComprehensiveTestSuite;
+import org.dasein.cloud.test.TestConfigurationException;
 
+public class JoyentTestSuite  {
+    static public Test suite() throws TestConfigurationException {
+        return new ComprehensiveTestSuite(SmartDataCenter.class);
+    }
 }
