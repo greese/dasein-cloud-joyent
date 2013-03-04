@@ -20,7 +20,6 @@ package org.dasein.cloud.joyent.compute;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Locale;
 
 import org.dasein.cloud.CloudException;
@@ -28,7 +27,6 @@ import org.dasein.cloud.InternalException;
 import org.dasein.cloud.OperationNotSupportedException;
 import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.Requirement;
-import org.dasein.cloud.ResourceStatus;
 import org.dasein.cloud.compute.AbstractImageSupport;
 import org.dasein.cloud.compute.Architecture;
 import org.dasein.cloud.compute.ImageClass;
@@ -71,7 +69,7 @@ public class Dataset extends AbstractImageSupport {
             if( json == null ) {
                 return null;
             }
-            return toMachineImage(ctx, new JSONObject(json));
+            return toMachineImage(new JSONObject(json));
         }
         catch( JSONException e ) {
             throw new CloudException(e);
@@ -107,40 +105,8 @@ public class Dataset extends AbstractImageSupport {
     }
 
     @Override
-    public @Nonnull Iterable<ResourceStatus> listImageStatus(@Nonnull ImageClass cls) throws CloudException, InternalException {
-        return Collections.emptyList();
-    }
-
-    @Override
     public @Nonnull Iterable<MachineImage> listImages(@Nullable ImageFilterOptions options) throws CloudException, InternalException {
-        ImageClass cls = (options == null ? null : options.getImageClass());
-
-        if( cls != null && !cls.equals(ImageClass.MACHINE) ) {
-            return Collections.emptyList();
-        }
-        ProviderContext ctx = provider.getContext();
-
-        if( ctx == null ) {
-            throw new CloudException("No context has been defined for this request");
-        }
-        JoyentMethod method = new JoyentMethod(provider);
-
-        try {
-            JSONArray arr = new JSONArray(method.doGetJson(provider.getEndpoint(), "datasets"));
-            ArrayList<MachineImage> images = new ArrayList<MachineImage>();
-
-            for( int i=0; i<arr.length(); i++ ) {
-                MachineImage image = toMachineImage(ctx, arr.getJSONObject(i));
-
-                if( image != null && (options == null || options.matches(image)) ) {
-                    images.add(image);
-                }
-            }
-            return images;
-        }
-        catch( JSONException e ) {
-            throw new CloudException(e);
-        }
+        return Collections.emptyList();
     }
 
     @Override
@@ -179,11 +145,6 @@ public class Dataset extends AbstractImageSupport {
     }
 
     @Override
-    public @Nonnull Iterable<MachineImage> searchImages(@Nullable String accountNumber, @Nullable String keyword, @Nullable Platform platform, @Nullable Architecture architecture, @Nullable ImageClass... imageClasses) throws CloudException, InternalException {
-        return Collections.emptyList();
-    }
-
-    @Override
     public @Nonnull Iterable<MachineImage> searchPublicImages(@Nonnull ImageFilterOptions options) throws CloudException, InternalException {
         ProviderContext ctx = provider.getContext();
 
@@ -197,7 +158,7 @@ public class Dataset extends AbstractImageSupport {
             ArrayList<MachineImage> images = new ArrayList<MachineImage>();
 
             for( int i=0; i<arr.length(); i++ ) {
-                MachineImage image = toMachineImage(ctx, arr.getJSONObject(i));
+                MachineImage image = toMachineImage(arr.getJSONObject(i));
 
                 if( image != null && options.matches(image) ) {
                     images.add(image);
@@ -237,54 +198,57 @@ public class Dataset extends AbstractImageSupport {
 
     @Override
     public boolean supportsPublicLibrary(@Nonnull ImageClass cls) throws CloudException, InternalException {
-        return true;
+        return ImageClass.MACHINE.equals(cls);
     }
 
-    private @Nullable MachineImage toMachineImage(@Nonnull ProviderContext ctx, @Nullable JSONObject json) throws JSONException {
+    private @Nullable MachineImage toMachineImage(@Nullable JSONObject json) throws CloudException, InternalException {
         if( json == null ) {
             return null;
         }
-        MachineImage image = new MachineImage();
-        
-        image.setCurrentState(MachineImageState.ACTIVE);
-        image.setProviderOwnerId("--joyent--");
-        image.setProviderRegionId(ctx.getRegionId());
-        image.setSoftware("");
-        image.setTags(new HashMap<String,String>());
-        image.setType(MachineImageType.VOLUME);
-        image.setImageClass(ImageClass.MACHINE);
-        if( json.has("id") ) {
-            image.setProviderMachineImageId(json.getString("id"));
+        String regionId = getContext().getRegionId();
+
+        if( regionId == null ) {
+            throw new CloudException("No region ID was specified for this request");
         }
-        if( json.has("name") ) {
-            image.setName(json.getString("name"));
-        }
-        if( json.has("os") ) {
-            String os = (image.getName() + " " + json.getString("os"));
-            
-            if( os.contains("64") ) {
-                image.setArchitecture(Architecture.I64);
+        String imageId = null, name = null, description = null;
+        Architecture architecture = Architecture.I64;
+        Platform platform = Platform.UNKNOWN;
+        long created = 0L;
+
+        try {
+            if( json.has("id") ) {
+                imageId = json.getString("id");
             }
-            else if( os.contains("32") ) {
-                image.setArchitecture(Architecture.I32);
+            if( json.has("name") ) {
+                name = json.getString("name");
             }
-            else {
-                image.setArchitecture(Architecture.I64);
+            if( json.has("description") ) {
+                description = json.getString("description");
             }
-            image.setPlatform(Platform.guess(os));
+            if( json.has("os") ) {
+                String os = (name == null ? json.getString("os") : name + " " + json.getString("os"));
+
+                platform = Platform.guess(os);
+                if( os.contains("32") ) {
+                    architecture = Architecture.I32;
+                }
+            }
+            if( json.has("created") ) {
+                created = provider.parseTimestamp(json.getString("created"));
+            }
         }
-        if( json.has("created") ) {
-            // TODO: implement creation timestamps in dasein cloud
+        catch( JSONException e ) {
+            throw new CloudException(e);
         }
-        if( image.getProviderMachineImageId() == null ) {
+        if( imageId == null ) {
             return null;
         }
-        if( image.getName() == null ) {
-            image.setName(image.getProviderMachineImageId());
+        if( name == null ) {
+            name = imageId;
         }
-        if( image.getDescription() == null ) {
-            image.setDescription(image.getName());
+        if( description == null ) {
+            description = name + " (" + platform + ") [#" + imageId + "]";
         }
-        return image;
+        return MachineImage.getMachineImageInstance("--joyent--", regionId, imageId, MachineImageState.ACTIVE, name, description, architecture, platform).createdAt(created);
     }
 }
