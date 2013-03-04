@@ -334,7 +334,7 @@ public class Dataset implements MachineImageSupport {
             boolean machine = false;
 
             for( ImageClass cls : imageClasses ) {
-                if( !cls.equals(ImageClass.MACHINE) ) {
+                if( cls.equals(ImageClass.MACHINE) ) {
                     machine = true;
                 }
             }
