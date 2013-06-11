@@ -34,9 +34,11 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpVersion;
 import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.AuthenticationException;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
@@ -47,6 +49,7 @@ import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpParams;
@@ -80,7 +83,8 @@ public class JoyentMethod {
         try {
             HttpClient client = getClient();
             HttpDelete delete = new HttpDelete(endpoint + "/my/" + resource);
-            
+            addPreemptiveAuth(delete);
+
             delete.addHeader("Accept", "application/json");
             delete.addHeader("X-Api-Version", "~6.5");
             if( wire.isDebugEnabled() ) {
@@ -170,6 +174,7 @@ public class JoyentMethod {
         try {
             HttpClient client = getClient();
             HttpGet get = new HttpGet(endpoint + "/my/" + resource);
+            addPreemptiveAuth(get);
 
             get.addHeader("Accept", "application/json");
             get.addHeader("X-Api-Version", "~6.5");
@@ -279,7 +284,8 @@ public class JoyentMethod {
         try {
             HttpClient client = getClient();
             HttpGet get = new HttpGet(endpoint + "/my/" + resource);
-            
+            addPreemptiveAuth(get);
+
             get.addHeader("Accept", "application/json");
             get.addHeader("X-Api-Version", "~6.5");
 
@@ -450,7 +456,8 @@ public class JoyentMethod {
         try {
             HttpClient client = getClient();
             HttpPost post = new HttpPost(endpoint + "/my/" + resource);
-            
+            addPreemptiveAuth(post);
+
             post.addHeader("Accept", "application/json");
             post.addHeader("X-Api-Version", "~6.5");
             if( customHeaders != null ) {
@@ -576,7 +583,8 @@ public class JoyentMethod {
         try {
             HttpClient client = getClient();
             HttpPost post = new HttpPost(endpoint + "/my/" + resource);
-            
+            addPreemptiveAuth(post);
+
             if( payload != null && payload.startsWith("action") ) {
                 post.addHeader("Content-Type", "application/x-www-form-urlencoded");
             }
@@ -715,7 +723,8 @@ public class JoyentMethod {
         try {
             HttpClient client = getClient();
             HttpPost post = new HttpPost(endpoint + resource);
-            
+            addPreemptiveAuth(post);
+
             post.addHeader("Content-Type", "application/octet-stream");
             post.addHeader("Accept", "application/json");
             post.addHeader("X-Api-Version", VERSION);
@@ -1217,6 +1226,23 @@ public class JoyentMethod {
                 wire.debug("<<< [PUT (" + (new Date()) + ")] -> " + endpoint + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
             }
+        }
+    }
+
+    protected void addPreemptiveAuth(@Nonnull HttpRequest request) throws CloudException, InternalException {
+        ProviderContext ctx = provider.getContext();
+        if( ctx == null ) {
+            throw new CloudException("No context was defined for this request");
+        }
+        try {
+            String username = new String(ctx.getAccessPublic(), "utf-8");
+            String password = new String(ctx.getAccessPrivate(), "utf-8");
+            UsernamePasswordCredentials creds = new UsernamePasswordCredentials(username, password);
+            request.addHeader(new BasicScheme().authenticate(creds, request));
+        } catch (UnsupportedEncodingException e) {
+            throw new InternalException(e);
+        } catch (AuthenticationException e) {
+            throw new InternalException(e);
         }
     }
 }
