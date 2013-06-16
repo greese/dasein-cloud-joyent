@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2009-2012 enStratus Networks Inc
+ * Copyright (C) 2009-2013 Dell, Inc
+ * See annotations for authorship information
  *
  * ====================================================================
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,14 +30,16 @@ import java.util.Properties;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.HttpVersion;
 import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.AuthenticationException;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
@@ -47,6 +50,7 @@ import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpParams;
@@ -80,7 +84,8 @@ public class JoyentMethod {
         try {
             HttpClient client = getClient(endpoint);
             HttpDelete delete = new HttpDelete(endpoint + "/my/" + resource);
-            
+            addPreemptiveAuth(delete);
+
             delete.addHeader("Accept", "application/json");
             delete.addHeader("X-Api-Version", "~6.5");
             if( wire.isDebugEnabled() ) {
@@ -112,7 +117,7 @@ public class JoyentMethod {
 
             logger.debug("HTTP STATUS: " + code);
 
-            if( code != HttpServletResponse.SC_NO_CONTENT && code != HttpServletResponse.SC_ACCEPTED && code != HttpServletResponse.SC_CREATED ) {
+            if( code != HttpStatus.SC_NO_CONTENT && code != HttpStatus.SC_ACCEPTED && code != HttpStatus.SC_CREATED ) {
                 logger.error("Expected NO CONTENT for DELETE request, got " + code);
                 String json = null;
                 
@@ -170,6 +175,7 @@ public class JoyentMethod {
         try {
             HttpClient client = getClient(endpoint);
             HttpGet get = new HttpGet(endpoint + "/my/" + resource);
+            addPreemptiveAuth(get);
 
             get.addHeader("Accept", "application/json");
             get.addHeader("X-Api-Version", "~6.5");
@@ -202,10 +208,10 @@ public class JoyentMethod {
 
             logger.debug("HTTP STATUS: " + code);
 
-            if( code == HttpServletResponse.SC_NOT_FOUND ) {
+            if( code == HttpStatus.SC_NOT_FOUND || code == HttpStatus.SC_GONE ) {
                 return null;
             }
-            if( code != HttpServletResponse.SC_NO_CONTENT && code != HttpServletResponse.SC_OK && code != HttpServletResponse.SC_NON_AUTHORITATIVE_INFORMATION ) {
+            if( code != HttpStatus.SC_NO_CONTENT && code != HttpStatus.SC_OK && code != HttpStatus.SC_NON_AUTHORITATIVE_INFORMATION ) {
                 logger.error("Expected OK for GET request, got " + code);
                 String json = null;
 
@@ -279,7 +285,8 @@ public class JoyentMethod {
         try {
             HttpClient client = getClient(endpoint);
             HttpGet get = new HttpGet(endpoint + "/my/" + resource);
-            
+            addPreemptiveAuth(get);
+
             get.addHeader("Accept", "application/json");
             get.addHeader("X-Api-Version", "~6.5");
 
@@ -311,10 +318,10 @@ public class JoyentMethod {
 
             logger.debug("HTTP STATUS: " + code);
 
-            if( code == HttpServletResponse.SC_NOT_FOUND ) {
+            if( code == HttpStatus.SC_NOT_FOUND ) {
                 return null;
             }
-            if( code != HttpServletResponse.SC_OK && code != HttpServletResponse.SC_NON_AUTHORITATIVE_INFORMATION ) {
+            if( code != HttpStatus.SC_OK && code != HttpStatus.SC_NON_AUTHORITATIVE_INFORMATION ) {
                 logger.error("Expected OK for GET request, got " + code);
                 String json = null;
 
@@ -449,7 +456,8 @@ public class JoyentMethod {
         try {
             HttpClient client = getClient(endpoint);
             HttpPost post = new HttpPost(endpoint + "/my/" + resource);
-            
+            addPreemptiveAuth(post);
+
             post.addHeader("Accept", "application/json");
             post.addHeader("X-Api-Version", "~6.5");
             if( customHeaders != null ) {
@@ -493,7 +501,7 @@ public class JoyentMethod {
 
             logger.debug("HTTP STATUS: " + code);
 
-            if( code != HttpServletResponse.SC_ACCEPTED && code != HttpServletResponse.SC_NO_CONTENT && code != HttpServletResponse.SC_CREATED ) {
+            if( code != HttpStatus.SC_ACCEPTED && code != HttpStatus.SC_NO_CONTENT && code != HttpStatus.SC_CREATED ) {
                 logger.error("Expected ACCEPTED for POST request, got " + code);
                 String json = null;
 
@@ -527,7 +535,7 @@ public class JoyentMethod {
                 throw new JoyentException(items);
             }
             else {
-                if( code == HttpServletResponse.SC_ACCEPTED || code == HttpServletResponse.SC_CREATED ) {
+                if( code == HttpStatus.SC_ACCEPTED || code == HttpStatus.SC_CREATED ) {
                     String json = null;
 
                     try {
@@ -575,7 +583,8 @@ public class JoyentMethod {
         try {
             HttpClient client = getClient(endpoint);
             HttpPost post = new HttpPost(endpoint + "/my/" + resource);
-            
+            addPreemptiveAuth(post);
+
             if( payload != null && payload.startsWith("action") ) {
                 post.addHeader("Content-Type", "application/x-www-form-urlencoded");
             }
@@ -631,7 +640,7 @@ public class JoyentMethod {
 
             logger.debug("HTTP STATUS: " + code);
 
-            if( code != HttpServletResponse.SC_ACCEPTED && code != HttpServletResponse.SC_NO_CONTENT && code != HttpServletResponse.SC_CREATED ) {
+            if( code != HttpStatus.SC_ACCEPTED && code != HttpStatus.SC_NO_CONTENT && code != HttpStatus.SC_CREATED ) {
                 logger.error("Expected ACCEPTED for POST request, got " + code);
                 String json = null;
 
@@ -665,7 +674,7 @@ public class JoyentMethod {
                 throw new JoyentException(items);
             }
             else {
-                if( code == HttpServletResponse.SC_ACCEPTED || code == HttpServletResponse.SC_CREATED ) {
+                if( code == HttpStatus.SC_ACCEPTED || code == HttpStatus.SC_CREATED ) {
                     String json = null;
 
                     try {
@@ -714,7 +723,8 @@ public class JoyentMethod {
         try {
             HttpClient client = getClient(endpoint);
             HttpPost post = new HttpPost(endpoint + resource);
-            
+            addPreemptiveAuth(post);
+
             post.addHeader("Content-Type", "application/octet-stream");
             post.addHeader("Accept", "application/json");
             post.addHeader("X-Api-Version", VERSION);
@@ -761,7 +771,7 @@ public class JoyentMethod {
             if( responseHash != null && md5Hash != null && !responseHash.equals(md5Hash) ) {
                 throw new CloudException("MD5 hash values do not match, probably data corruption");
             }
-            if( code != HttpServletResponse.SC_ACCEPTED && code != HttpServletResponse.SC_NO_CONTENT && code != HttpServletResponse.SC_CREATED ) {
+            if( code != HttpStatus.SC_ACCEPTED && code != HttpStatus.SC_NO_CONTENT && code != HttpStatus.SC_CREATED ) {
                 logger.error("Expected ACCEPTED or NO CONTENT for POST request, got " + code);
                 String json = null;
 
@@ -795,7 +805,7 @@ public class JoyentMethod {
             }
             else {
                 wire.debug("");
-                if( code == HttpServletResponse.SC_ACCEPTED || code == HttpServletResponse.SC_CREATED ) {
+                if( code == HttpStatus.SC_ACCEPTED || code == HttpStatus.SC_CREATED ) {
                     String json = null;
 
                     try {
@@ -888,7 +898,7 @@ public class JoyentMethod {
 
             logger.debug("HTTP STATUS: " + code);
 
-            if( code != HttpServletResponse.SC_CREATED && code != HttpServletResponse.SC_ACCEPTED && code != HttpServletResponse.SC_NO_CONTENT ) {
+            if( code != HttpStatus.SC_CREATED && code != HttpStatus.SC_ACCEPTED && code != HttpStatus.SC_NO_CONTENT ) {
                 logger.error("Expected CREATED, ACCEPTED, or NO CONTENT for put request, got " + code);
                 String json = null;
 
@@ -921,7 +931,7 @@ public class JoyentMethod {
                 throw new JoyentException(items);
             }
             else {
-                if( code == HttpServletResponse.SC_ACCEPTED || code == HttpServletResponse.SC_CREATED ) {
+                if( code == HttpStatus.SC_ACCEPTED || code == HttpStatus.SC_CREATED ) {
                     String json = null;
 
                     try {
@@ -1016,7 +1026,7 @@ public class JoyentMethod {
 
             logger.debug("HTTP STATUS: " + code);
 
-            if( code != HttpServletResponse.SC_CREATED && code != HttpServletResponse.SC_ACCEPTED && code != HttpServletResponse.SC_NO_CONTENT ) {
+            if( code != HttpStatus.SC_CREATED && code != HttpStatus.SC_ACCEPTED && code != HttpStatus.SC_NO_CONTENT ) {
                 logger.error("Expected CREATED, ACCEPTED, or NO CONTENT for put request, got " + code);
                 String json = null;
 
@@ -1049,7 +1059,7 @@ public class JoyentMethod {
                 throw new JoyentException(items);
             }
             else {
-                if( code == HttpServletResponse.SC_ACCEPTED || code == HttpServletResponse.SC_CREATED ) {
+                if( code == HttpStatus.SC_ACCEPTED || code == HttpStatus.SC_CREATED ) {
                     String json = null;
 
                     try {
@@ -1149,7 +1159,7 @@ public class JoyentMethod {
                 throw new CloudException("MD5 hash values do not match, probably data corruption");
             }
 
-            if( code != HttpServletResponse.SC_CREATED && code != HttpServletResponse.SC_ACCEPTED && code != HttpServletResponse.SC_NO_CONTENT ) {
+            if( code != HttpStatus.SC_CREATED && code != HttpStatus.SC_ACCEPTED && code != HttpStatus.SC_NO_CONTENT ) {
                 logger.error("Expected CREATED, ACCEPTED, or NO CONTENT for PUT request, got " + code);
                 String json = null;
 
@@ -1182,7 +1192,7 @@ public class JoyentMethod {
                 throw new JoyentException(items);
             }
             else {
-                if( code == HttpServletResponse.SC_ACCEPTED ) {
+                if( code == HttpStatus.SC_ACCEPTED ) {
                     String json = null;
 
                     try {
@@ -1216,6 +1226,23 @@ public class JoyentMethod {
                 wire.debug("<<< [PUT (" + (new Date()) + ")] -> " + endpoint + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
             }
+        }
+    }
+
+    protected void addPreemptiveAuth(@Nonnull HttpRequest request) throws CloudException, InternalException {
+        ProviderContext ctx = provider.getContext();
+        if( ctx == null ) {
+            throw new CloudException("No context was defined for this request");
+        }
+        try {
+            String username = new String(ctx.getAccessPublic(), "utf-8");
+            String password = new String(ctx.getAccessPrivate(), "utf-8");
+            UsernamePasswordCredentials creds = new UsernamePasswordCredentials(username, password);
+            request.addHeader(new BasicScheme().authenticate(creds, request));
+        } catch (UnsupportedEncodingException e) {
+            throw new InternalException(e);
+        } catch (AuthenticationException e) {
+            throw new InternalException(e);
         }
     }
 }

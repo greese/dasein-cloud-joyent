@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2009-2012 enStratus Networks Inc
+ * Copyright (C) 2009-2013 Dell, Inc
+ * See annotations for authorship information
  *
  * ====================================================================
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -156,18 +157,27 @@ public class SmartDataCenter extends AbstractCloud {
         if( time == null ) {
             return 0L;
         }
+        SimpleDateFormat fmt;
         int idx = time.lastIndexOf('+');
-        
-        time = time.substring(0,idx);
-        SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-            
+        if (idx < 0) {
+            idx = time.lastIndexOf('Z');
+            if (idx < 0) {
+                throw new CloudException("Could not parse timestamp: " + time);
+            }
+            time = time.substring(0,idx);
+            fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+        } else {
+            time = time.substring(0,idx);
+            fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+        }
+
         fmt.setTimeZone(TimeZone.getTimeZone("GMT"));
         if( time.length() > 0 ) {
             try {
                 return fmt.parse(time).getTime();
             } 
             catch( ParseException e ) {
-                throw new CloudException("Could not parse date: " + time);
+                throw new CloudException("Could not parse timestamp: " + time);
             }
         }
         return 0L;

@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2009-2012 enStratus Networks Inc
+ * Copyright (C) 2009-2013 Dell, Inc
+ * See annotations for authorship information
  *
  * ====================================================================
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,24 +21,20 @@ package org.dasein.cloud.joyent.compute;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Locale;
 
-import org.dasein.cloud.AsynchronousTask;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.OperationNotSupportedException;
 import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.Requirement;
-import org.dasein.cloud.ResourceStatus;
-import org.dasein.cloud.Tag;
+import org.dasein.cloud.compute.AbstractImageSupport;
 import org.dasein.cloud.compute.Architecture;
 import org.dasein.cloud.compute.ImageClass;
-import org.dasein.cloud.compute.ImageCreateOptions;
+import org.dasein.cloud.compute.ImageFilterOptions;
 import org.dasein.cloud.compute.MachineImage;
 import org.dasein.cloud.compute.MachineImageFormat;
 import org.dasein.cloud.compute.MachineImageState;
-import org.dasein.cloud.compute.MachineImageSupport;
 import org.dasein.cloud.compute.MachineImageType;
 import org.dasein.cloud.compute.Platform;
 import org.dasein.cloud.identity.ServiceAction;
@@ -50,39 +47,12 @@ import org.json.JSONObject;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public class Dataset implements MachineImageSupport {
+public class Dataset extends AbstractImageSupport {
     private SmartDataCenter provider;
     
-    Dataset(@Nonnull SmartDataCenter sdc) { provider = sdc; }
-
-    @Override
-    public void addImageShare(@Nonnull String providerImageId, @Nonnull String accountNumber) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Image sharing is not supported");
-    }
-
-    @Override
-    public void addPublicShare(@Nonnull String providerImageId) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Image sharing is not supported");
-    }
-
-    @Override
-    public @Nonnull String bundleVirtualMachine(@Nonnull String virtualMachineId, @Nonnull MachineImageFormat format, @Nonnull String bucket, @Nonnull String name) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Image bundling is not supported");
-    }
-
-    @Override
-    public void bundleVirtualMachineAsync(@Nonnull String virtualMachineId, @Nonnull MachineImageFormat format, @Nonnull String bucket, @Nonnull String name, @Nonnull AsynchronousTask<String> trackingTask) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Image bundling is not supported");
-    }
-
-    @Override
-    public @Nonnull MachineImage captureImage(@Nonnull ImageCreateOptions options) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Custom machine images are not supported");
-    }
-
-    @Override
-    public void captureImageAsync(@Nonnull ImageCreateOptions options, @Nonnull AsynchronousTask<MachineImage> taskTracker) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Custom machine images are not supported");
+    Dataset(@Nonnull SmartDataCenter sdc) {
+        super(sdc);
+        provider = sdc;
     }
 
     @Override
@@ -100,7 +70,7 @@ public class Dataset implements MachineImageSupport {
             if( json == null ) {
                 return null;
             }
-            return toMachineImage(ctx, new JSONObject(json));
+            return toMachineImage(new JSONObject(json));
         }
         catch( JSONException e ) {
             throw new CloudException(e);
@@ -108,24 +78,8 @@ public class Dataset implements MachineImageSupport {
     }
 
     @Override
-    @Deprecated
-    public @Nullable MachineImage getMachineImage(@Nonnull String machineImageId) throws CloudException, InternalException {
-        return getImage(machineImageId);
-    }
-
-    @Override
-    public @Nonnull String getProviderTermForImage(@Nonnull Locale locale) {
-        return getProviderTermForImage(locale, ImageClass.MACHINE);
-    }
-
-    @Override
     public @Nonnull String getProviderTermForImage(@Nonnull Locale locale, @Nonnull ImageClass cls) {
         return "dataset";
-    }
-
-    @Override
-    public @Nonnull String getProviderTermForCustomImage(@Nonnull Locale locale, @Nonnull ImageClass cls) {
-        return getProviderTermForImage(locale, cls);
     }
 
     @Override
@@ -136,11 +90,6 @@ public class Dataset implements MachineImageSupport {
     @Override
     public @Nonnull Requirement identifyLocalBundlingRequirement() throws CloudException, InternalException {
         return Requirement.NONE;
-    }
-
-    @Override
-    public @Nonnull AsynchronousTask<String> imageVirtualMachine(@Nonnull String vmId, @Nonnull String name, @Nonnull String description) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("No custom imaging");
     }
 
     @Override
@@ -157,55 +106,7 @@ public class Dataset implements MachineImageSupport {
     }
 
     @Override
-    public @Nonnull Iterable<ResourceStatus> listImageStatus(@Nonnull ImageClass cls) throws CloudException, InternalException {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public @Nonnull Iterable<MachineImage> listImages(@Nonnull ImageClass cls) throws CloudException, InternalException {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public @Nonnull Iterable<MachineImage> listImages(@Nonnull ImageClass cls, @Nonnull String ownedBy) throws CloudException, InternalException {
-        if( !cls.equals(ImageClass.MACHINE) ) {
-            return Collections.emptyList();
-        }
-        ProviderContext ctx = provider.getContext();
-
-        if( ctx == null ) {
-            throw new CloudException("No context has been defined for this request");
-        }
-        JoyentMethod method = new JoyentMethod(provider);
-
-        try {
-            JSONArray arr = new JSONArray(method.doGetJson(provider.getEndpoint(), "datasets"));
-            ArrayList<MachineImage> images = new ArrayList<MachineImage>();
-
-            for( int i=0; i<arr.length(); i++ ) {
-                MachineImage image = toMachineImage(ctx, arr.getJSONObject(i));
-
-                if( image != null && ownedBy.equals(image.getProviderOwnerId()) ) {
-                    images.add(image);
-                }
-            }
-            return images;
-        }
-        catch( JSONException e ) {
-            throw new CloudException(e);
-        }
-    }
-
-    @Override
-    public @Nonnull Iterable<MachineImage> listMachineImages() throws CloudException, InternalException {
-        return listImages(ImageClass.MACHINE);
-    }
-
-    @Override
-    public @Nonnull Iterable<MachineImage> listMachineImagesOwnedBy(@Nullable String accountId) throws CloudException, InternalException {
-        if( accountId == null || accountId.equals("") || accountId.equals("--joyent--") ) {
-            return listMachineImages();
-        }
+    public @Nonnull Iterable<MachineImage> listImages(@Nullable ImageFilterOptions options) throws CloudException, InternalException {
         return Collections.emptyList();
     }
 
@@ -234,60 +135,9 @@ public class Dataset implements MachineImageSupport {
         return Collections.singletonList(MachineImageType.VOLUME);
     }
 
-    private boolean matches(@Nonnull MachineImage image, @Nullable String keyword, @Nullable Platform platform, @Nullable Architecture architecture) {
-        if( architecture != null && !architecture.equals(image.getArchitecture()) ) {
-            return false;
-        }
-        if( platform != null && !platform.equals(Platform.UNKNOWN) ) {
-            Platform mine = image.getPlatform();
-
-            if( platform.isWindows() && !mine.isWindows() ) {
-                return false;
-            }
-            if( platform.isUnix() && !mine.isUnix() ) {
-                return false;
-            }
-            if( platform.isBsd() && !mine.isBsd() ) {
-                return false;
-            }
-            if( platform.isLinux() && !mine.isLinux() ) {
-                return false;
-            }
-            if( platform.equals(Platform.UNIX) ) {
-                if( !mine.isUnix() ) {
-                    return false;
-                }
-            }
-            else if( !platform.equals(mine) ) {
-                return false;
-            }
-        }
-        if( keyword != null ) {
-            keyword = keyword.toLowerCase();
-            if( !image.getDescription().toLowerCase().contains(keyword) ) {
-                if( !image.getName().toLowerCase().contains(keyword) ) {
-                    if( !image.getProviderMachineImageId().toLowerCase().contains(keyword) ) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public @Nonnull MachineImage registerImageBundle(@Nonnull ImageCreateOptions options) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("No support for image registration");
-    }
-
     @Override
     public @Nonnull String[] mapServiceAction(@Nonnull ServiceAction action) {
         return new String[0];
-    }
-
-    @Override
-    public void remove(@Nonnull String machineImageId) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Removal not supported");
     }
 
     @Override
@@ -296,52 +146,7 @@ public class Dataset implements MachineImageSupport {
     }
 
     @Override
-    public void removeAllImageShares(@Nonnull String providerImageId) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Image sharing is not supported");
-    }
-
-    @Override
-    public void removeImageShare(@Nonnull String providerImageId, @Nonnull String accountNumber) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Image sharing is not supported");
-    }
-
-    @Override
-    public void removePublicShare(@Nonnull String providerImageId) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Image sharing is not supported");
-    }
-
-    @Override
-    public @Nonnull Iterable<MachineImage> searchMachineImages(@Nullable String keyword, @Nullable Platform platform, @Nullable Architecture architecture) throws CloudException, InternalException {
-        ArrayList<MachineImage> matches = new ArrayList<MachineImage>();
-
-        for( MachineImage img : searchImages(null, keyword, platform, architecture, ImageClass.MACHINE) ) {
-            matches.add(img);
-        }
-        for( MachineImage img : searchPublicImages(keyword, platform, architecture, ImageClass.MACHINE) ) {
-            matches.add(img);
-        }
-        return matches;
-    }
-
-    @Override
-    public @Nonnull Iterable<MachineImage> searchImages(@Nullable String accountNumber, @Nullable String keyword, @Nullable Platform platform, @Nullable Architecture architecture, @Nullable ImageClass... imageClasses) throws CloudException, InternalException {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public @Nonnull Iterable<MachineImage> searchPublicImages(@Nullable String keyword, @Nullable Platform platform, @Nullable Architecture architecture, @Nullable ImageClass... imageClasses) throws CloudException, InternalException {
-        if( imageClasses != null && imageClasses.length > 0 ) {
-            boolean machine = false;
-
-            for( ImageClass cls : imageClasses ) {
-                if( cls.equals(ImageClass.MACHINE) ) {
-                    machine = true;
-                }
-            }
-            if( !machine ) {
-                return Collections.emptyList();
-            }
-        }
+    public @Nonnull Iterable<MachineImage> searchPublicImages(@Nonnull ImageFilterOptions options) throws CloudException, InternalException {
         ProviderContext ctx = provider.getContext();
 
         if( ctx == null ) {
@@ -354,9 +159,9 @@ public class Dataset implements MachineImageSupport {
             ArrayList<MachineImage> images = new ArrayList<MachineImage>();
 
             for( int i=0; i<arr.length(); i++ ) {
-                MachineImage image = toMachineImage(ctx, arr.getJSONObject(i));
+                MachineImage image = toMachineImage(arr.getJSONObject(i));
 
-                if( image != null && matches(image, keyword, platform, architecture) ) {
+                if( image != null && options.matches(image) ) {
                     images.add(image);
                 }
             }
@@ -365,11 +170,6 @@ public class Dataset implements MachineImageSupport {
         catch( JSONException e ) {
             throw new CloudException(e);
         }
-    }
-
-    @Override
-    public void shareMachineImage(@Nonnull String machineImageId, @Nullable String withAccountId, boolean allow) throws CloudException, InternalException {
-        throw new OperationNotSupportedException("Sharing not supported");
     }
 
     @Override
@@ -399,59 +199,57 @@ public class Dataset implements MachineImageSupport {
 
     @Override
     public boolean supportsPublicLibrary(@Nonnull ImageClass cls) throws CloudException, InternalException {
-        return true;
+        return ImageClass.MACHINE.equals(cls);
     }
 
-    @Override
-    public void updateTags(@Nonnull String imageId, @Nonnull Tag... tags) throws CloudException, InternalException {
-        // NO-OP
-    }
-
-    private @Nullable MachineImage toMachineImage(@Nonnull ProviderContext ctx, @Nullable JSONObject json) throws JSONException {
+    private @Nullable MachineImage toMachineImage(@Nullable JSONObject json) throws CloudException, InternalException {
         if( json == null ) {
             return null;
         }
-        MachineImage image = new MachineImage();
-        
-        image.setCurrentState(MachineImageState.ACTIVE);
-        image.setProviderOwnerId("--joyent--");
-        image.setProviderRegionId(ctx.getRegionId());
-        image.setSoftware("");
-        image.setTags(new HashMap<String,String>());
-        image.setType(MachineImageType.VOLUME);
-        image.setImageClass(ImageClass.MACHINE);
-        if( json.has("id") ) {
-            image.setProviderMachineImageId(json.getString("id"));
+        String regionId = getContext().getRegionId();
+
+        if( regionId == null ) {
+            throw new CloudException("No region ID was specified for this request");
         }
-        if( json.has("name") ) {
-            image.setName(json.getString("name"));
-        }
-        if( json.has("os") ) {
-            String os = (image.getName() + " " + json.getString("os"));
-            
-            if( os.contains("64") ) {
-                image.setArchitecture(Architecture.I64);
+        String imageId = null, name = null, description = null;
+        Architecture architecture = Architecture.I64;
+        Platform platform = Platform.UNKNOWN;
+        long created = 0L;
+
+        try {
+            if( json.has("id") ) {
+                imageId = json.getString("id");
             }
-            else if( os.contains("32") ) {
-                image.setArchitecture(Architecture.I32);
+            if( json.has("name") ) {
+                name = json.getString("name");
             }
-            else {
-                image.setArchitecture(Architecture.I64);
+            if( json.has("description") ) {
+                description = json.getString("description");
             }
-            image.setPlatform(Platform.guess(os));
+            if( json.has("os") ) {
+                String os = (name == null ? json.getString("os") : name + " " + json.getString("os"));
+
+                platform = Platform.guess(os);
+                if( os.contains("32") ) {
+                    architecture = Architecture.I32;
+                }
+            }
+            if( json.has("created") ) {
+                created = provider.parseTimestamp(json.getString("created"));
+            }
         }
-        if( json.has("created") ) {
-            // TODO: implement creation timestamps in dasein cloud
+        catch( JSONException e ) {
+            throw new CloudException(e);
         }
-        if( image.getProviderMachineImageId() == null ) {
+        if( imageId == null ) {
             return null;
         }
-        if( image.getName() == null ) {
-            image.setName(image.getProviderMachineImageId());
+        if( name == null ) {
+            name = imageId;
         }
-        if( image.getDescription() == null ) {
-            image.setDescription(image.getName());
+        if( description == null ) {
+            description = name + " (" + platform + ") [#" + imageId + "]";
         }
-        return image;
+        return MachineImage.getMachineImageInstance("--joyent--", regionId, imageId, MachineImageState.ACTIVE, name, description, architecture, platform).createdAt(created);
     }
 }
