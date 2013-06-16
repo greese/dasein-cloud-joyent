@@ -3,7 +3,7 @@
   
   <groupId>org.dasein</groupId>
   <artifactId>dasein-cloud-joyent</artifactId>
-  <version>2013.04.1-SNAPSHOT</version>
+  <version>2013.07-SNAPSHOT</version>
   
   <name>Dasein Cloud Joyent</name>
   <description>Native API implementation for the Joyent API</description>
@@ -42,7 +42,7 @@
     <dependency>
         <groupId>org.dasein</groupId>
         <artifactId>dasein-cloud-core</artifactId>
-        <version>2013.04.1</version>
+        <version>2013.07-SNAPSHOT</version>
         <scope>compile</scope>
         <optional>false</optional>
     </dependency>
@@ -76,7 +76,7 @@
       <dependency>
           <groupId>org.dasein</groupId>
           <artifactId>dasein-cloud-test</artifactId>
-          <version>2013.04.6</version>
+          <version>2013.07-SNAPSHOT</version>
           <scope>test</scope>
           <optional>false</optional>
       </dependency>
@@ -212,26 +212,10 @@
                     <name>regionId</name>
                     <value>${regionId}</value>
                 </property>
-                <property>
-                    <name>test.region</name>
-                    <value>${regionId}</value>
-                </property>
-                <property>
-                    <name>test.dataCenter</name>
-                    <value>${test.dataCenter}</value>
-                </property>
-                <property>
-                    <name>test.machineImage</name>
-                    <value>${test.machineImage}</value>
-                </property>
-                <property>
-                    <name>test.product</name>
-                    <value>${test.product}</value>
-                </property>
             </systemProperties> 
-          <excludes>
-           <exclude>**/TestSuite.java</exclude>
-          </excludes>
+          <includes>
+           <include>**/TestSuite.java</include>
+          </includes>
         </configuration>
       </plugin> 
       <plugin>
