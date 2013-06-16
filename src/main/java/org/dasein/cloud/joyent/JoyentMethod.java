@@ -1,5 +1,6 @@
 /**
- * Copyright (C) 2009-2012 enStratus Networks Inc
+ * Copyright (C) 2009-2013 Dell, Inc
+ * See annotations for authorship information
  *
  * ====================================================================
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,13 +30,13 @@ import java.util.Properties;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.HttpVersion;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.AuthenticationException;
@@ -116,7 +117,7 @@ public class JoyentMethod {
 
             logger.debug("HTTP STATUS: " + code);
 
-            if( code != HttpServletResponse.SC_NO_CONTENT && code != HttpServletResponse.SC_ACCEPTED && code != HttpServletResponse.SC_CREATED ) {
+            if( code != HttpStatus.SC_NO_CONTENT && code != HttpStatus.SC_ACCEPTED && code != HttpStatus.SC_CREATED ) {
                 logger.error("Expected NO CONTENT for DELETE request, got " + code);
                 String json = null;
                 
@@ -207,10 +208,10 @@ public class JoyentMethod {
 
             logger.debug("HTTP STATUS: " + code);
 
-            if( code == HttpServletResponse.SC_NOT_FOUND || code == HttpServletResponse.SC_GONE ) {
+            if( code == HttpStatus.SC_NOT_FOUND || code == HttpStatus.SC_GONE ) {
                 return null;
             }
-            if( code != HttpServletResponse.SC_NO_CONTENT && code != HttpServletResponse.SC_OK && code != HttpServletResponse.SC_NON_AUTHORITATIVE_INFORMATION ) {
+            if( code != HttpStatus.SC_NO_CONTENT && code != HttpStatus.SC_OK && code != HttpStatus.SC_NON_AUTHORITATIVE_INFORMATION ) {
                 logger.error("Expected OK for GET request, got " + code);
                 String json = null;
 
@@ -317,10 +318,10 @@ public class JoyentMethod {
 
             logger.debug("HTTP STATUS: " + code);
 
-            if( code == HttpServletResponse.SC_NOT_FOUND ) {
+            if( code == HttpStatus.SC_NOT_FOUND ) {
                 return null;
             }
-            if( code != HttpServletResponse.SC_OK && code != HttpServletResponse.SC_NON_AUTHORITATIVE_INFORMATION ) {
+            if( code != HttpStatus.SC_OK && code != HttpStatus.SC_NON_AUTHORITATIVE_INFORMATION ) {
                 logger.error("Expected OK for GET request, got " + code);
                 String json = null;
 
@@ -500,7 +501,7 @@ public class JoyentMethod {
 
             logger.debug("HTTP STATUS: " + code);
 
-            if( code != HttpServletResponse.SC_ACCEPTED && code != HttpServletResponse.SC_NO_CONTENT && code != HttpServletResponse.SC_CREATED ) {
+            if( code != HttpStatus.SC_ACCEPTED && code != HttpStatus.SC_NO_CONTENT && code != HttpStatus.SC_CREATED ) {
                 logger.error("Expected ACCEPTED for POST request, got " + code);
                 String json = null;
 
@@ -534,7 +535,7 @@ public class JoyentMethod {
                 throw new JoyentException(items);
             }
             else {
-                if( code == HttpServletResponse.SC_ACCEPTED || code == HttpServletResponse.SC_CREATED ) {
+                if( code == HttpStatus.SC_ACCEPTED || code == HttpStatus.SC_CREATED ) {
                     String json = null;
 
                     try {
@@ -639,7 +640,7 @@ public class JoyentMethod {
 
             logger.debug("HTTP STATUS: " + code);
 
-            if( code != HttpServletResponse.SC_ACCEPTED && code != HttpServletResponse.SC_NO_CONTENT && code != HttpServletResponse.SC_CREATED ) {
+            if( code != HttpStatus.SC_ACCEPTED && code != HttpStatus.SC_NO_CONTENT && code != HttpStatus.SC_CREATED ) {
                 logger.error("Expected ACCEPTED for POST request, got " + code);
                 String json = null;
 
@@ -673,7 +674,7 @@ public class JoyentMethod {
                 throw new JoyentException(items);
             }
             else {
-                if( code == HttpServletResponse.SC_ACCEPTED || code == HttpServletResponse.SC_CREATED ) {
+                if( code == HttpStatus.SC_ACCEPTED || code == HttpStatus.SC_CREATED ) {
                     String json = null;
 
                     try {
@@ -770,7 +771,7 @@ public class JoyentMethod {
             if( responseHash != null && md5Hash != null && !responseHash.equals(md5Hash) ) {
                 throw new CloudException("MD5 hash values do not match, probably data corruption");
             }
-            if( code != HttpServletResponse.SC_ACCEPTED && code != HttpServletResponse.SC_NO_CONTENT && code != HttpServletResponse.SC_CREATED ) {
+            if( code != HttpStatus.SC_ACCEPTED && code != HttpStatus.SC_NO_CONTENT && code != HttpStatus.SC_CREATED ) {
                 logger.error("Expected ACCEPTED or NO CONTENT for POST request, got " + code);
                 String json = null;
 
@@ -804,7 +805,7 @@ public class JoyentMethod {
             }
             else {
                 wire.debug("");
-                if( code == HttpServletResponse.SC_ACCEPTED || code == HttpServletResponse.SC_CREATED ) {
+                if( code == HttpStatus.SC_ACCEPTED || code == HttpStatus.SC_CREATED ) {
                     String json = null;
 
                     try {
@@ -897,7 +898,7 @@ public class JoyentMethod {
 
             logger.debug("HTTP STATUS: " + code);
 
-            if( code != HttpServletResponse.SC_CREATED && code != HttpServletResponse.SC_ACCEPTED && code != HttpServletResponse.SC_NO_CONTENT ) {
+            if( code != HttpStatus.SC_CREATED && code != HttpStatus.SC_ACCEPTED && code != HttpStatus.SC_NO_CONTENT ) {
                 logger.error("Expected CREATED, ACCEPTED, or NO CONTENT for put request, got " + code);
                 String json = null;
 
@@ -930,7 +931,7 @@ public class JoyentMethod {
                 throw new JoyentException(items);
             }
             else {
-                if( code == HttpServletResponse.SC_ACCEPTED || code == HttpServletResponse.SC_CREATED ) {
+                if( code == HttpStatus.SC_ACCEPTED || code == HttpStatus.SC_CREATED ) {
                     String json = null;
 
                     try {
@@ -1025,7 +1026,7 @@ public class JoyentMethod {
 
             logger.debug("HTTP STATUS: " + code);
 
-            if( code != HttpServletResponse.SC_CREATED && code != HttpServletResponse.SC_ACCEPTED && code != HttpServletResponse.SC_NO_CONTENT ) {
+            if( code != HttpStatus.SC_CREATED && code != HttpStatus.SC_ACCEPTED && code != HttpStatus.SC_NO_CONTENT ) {
                 logger.error("Expected CREATED, ACCEPTED, or NO CONTENT for put request, got " + code);
                 String json = null;
 
@@ -1058,7 +1059,7 @@ public class JoyentMethod {
                 throw new JoyentException(items);
             }
             else {
-                if( code == HttpServletResponse.SC_ACCEPTED || code == HttpServletResponse.SC_CREATED ) {
+                if( code == HttpStatus.SC_ACCEPTED || code == HttpStatus.SC_CREATED ) {
                     String json = null;
 
                     try {
@@ -1158,7 +1159,7 @@ public class JoyentMethod {
                 throw new CloudException("MD5 hash values do not match, probably data corruption");
             }
 
-            if( code != HttpServletResponse.SC_CREATED && code != HttpServletResponse.SC_ACCEPTED && code != HttpServletResponse.SC_NO_CONTENT ) {
+            if( code != HttpStatus.SC_CREATED && code != HttpStatus.SC_ACCEPTED && code != HttpStatus.SC_NO_CONTENT ) {
                 logger.error("Expected CREATED, ACCEPTED, or NO CONTENT for PUT request, got " + code);
                 String json = null;
 
@@ -1191,7 +1192,7 @@ public class JoyentMethod {
                 throw new JoyentException(items);
             }
             else {
-                if( code == HttpServletResponse.SC_ACCEPTED ) {
+                if( code == HttpStatus.SC_ACCEPTED ) {
                     String json = null;
 
                     try {
