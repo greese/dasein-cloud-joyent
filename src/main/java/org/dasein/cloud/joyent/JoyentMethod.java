@@ -207,7 +207,7 @@ public class JoyentMethod {
 
             logger.debug("HTTP STATUS: " + code);
 
-            if( code == HttpServletResponse.SC_NOT_FOUND ) {
+            if( code == HttpServletResponse.SC_NOT_FOUND || code == HttpServletResponse.SC_GONE ) {
                 return null;
             }
             if( code != HttpServletResponse.SC_NO_CONTENT && code != HttpServletResponse.SC_OK && code != HttpServletResponse.SC_NON_AUTHORITATIVE_INFORMATION ) {
