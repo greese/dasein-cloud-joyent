@@ -439,7 +439,7 @@ public class Machine extends AbstractVMSupport {
     }
 
     @Override
-    public void terminate(@Nonnull String vmId) throws InternalException, CloudException {
+    public void terminate(@Nonnull String vmId, @Nullable String explanation) throws InternalException, CloudException {
         long timeout = System.currentTimeMillis() + (CalendarWrapper.MINUTE * 20);
         JoyentMethod method = new JoyentMethod(provider);
         VirtualMachine vm = getVirtualMachine(vmId);
