@@ -157,7 +157,6 @@ public class SmartDataCenter extends AbstractCloud {
         if( time == null ) {
             return 0L;
         }
-        SimpleDateFormat fmt;
         int idx = time.lastIndexOf('+');
         if (idx < 0) {
             idx = time.lastIndexOf('Z');
@@ -165,19 +164,21 @@ public class SmartDataCenter extends AbstractCloud {
                 throw new CloudException("Could not parse timestamp: " + time);
             }
             time = time.substring(0,idx);
-            fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
         } else {
             time = time.substring(0,idx);
-            fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
         }
-
+        SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
         fmt.setTimeZone(TimeZone.getTimeZone("GMT"));
         if( time.length() > 0 ) {
             try {
                 return fmt.parse(time).getTime();
-            } 
-            catch( ParseException e ) {
-                throw new CloudException("Could not parse timestamp: " + time);
+            } catch( ParseException e ) {
+                fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+                try {
+                    return fmt.parse(time).getTime();
+                } catch (ParseException e2) {
+                    throw new CloudException("Could not parse timestamp: " + time);
+                }
             }
         }
         return 0L;
