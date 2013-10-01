@@ -38,7 +38,12 @@
   </parent>
           
   <dependencies>
-      <!-- Compile -->
+    <!-- Compile -->
+    <dependency>
+      <groupId>com.joyent.manta</groupId>
+      <artifactId>java-manta</artifactId>
+      <version>1.3</version>
+    </dependency>
     <dependency>
         <groupId>org.dasein</groupId>
         <artifactId>dasein-cloud-core</artifactId>

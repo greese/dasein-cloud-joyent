@@ -32,6 +32,8 @@ import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.joyent.compute.JoyentComputeServices;
+import org.dasein.cloud.joyent.storage.MantaStorageServices;
+import org.dasein.cloud.storage.StorageServices;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -66,7 +68,13 @@ public class SmartDataCenter extends AbstractCloud {
     }
     
     public SmartDataCenter() { }
-    
+
+    @Nullable
+    @Override
+    public synchronized StorageServices getStorageServices() {
+        return new MantaStorageServices();
+    }
+
     @Override
     public @Nonnull JoyentComputeServices getComputeServices() {
         return new JoyentComputeServices(this);
