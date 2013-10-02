@@ -594,19 +594,19 @@ public class JoyentMethod {
             post.addHeader("Accept", "application/json");
             post.addHeader("X-Api-Version", VERSION);
 
-            try {
-                if( payload != null && payload.startsWith("action") ) {
-                    //noinspection deprecation
-                    post.setEntity(new StringEntity(payload, "application/x-www-form-urlencoded", "UTF-8"));
-                }
-                else {
-                    //noinspection deprecation
-                    post.setEntity(new StringEntity(payload == null ? "" : payload, "application/json", "UTF-8"));
-                }
-            }
-            catch( UnsupportedEncodingException e ) {
-                throw new InternalException(e);
-            }
+//            try {
+//                if( payload != null && payload.startsWith("action") ) {
+//                    //noinspection deprecation
+//                    post.setEntity(new StringEntity(payload, "application/x-www-form-urlencoded", "UTF-8"));
+//                }
+//                else {
+//                    //noinspection deprecation
+//                    post.setEntity(new StringEntity(payload == null ? "" : payload, "application/json", "UTF-8"));
+//                }
+//            }
+//            catch( UnsupportedEncodingException e ) {
+//                throw new InternalException(e);
+//            }
             if( wire.isDebugEnabled() ) {
                 wire.debug(post.getRequestLine().toString());
                 for( Header header : post.getAllHeaders() ) {
@@ -729,7 +729,7 @@ public class JoyentMethod {
             post.addHeader("Accept", "application/json");
             post.addHeader("X-Api-Version", VERSION);
 
-            post.setEntity(new InputStreamEntity(stream, -1L, ContentType.APPLICATION_OCTET_STREAM));
+//            post.setEntity(new InputStreamEntity(stream, -1L, ContentType.APPLICATION_OCTET_STREAM));
             if( wire.isDebugEnabled() ) {
                 wire.debug(post.getRequestLine().toString());
                 for( Header header : post.getAllHeaders() ) {
@@ -985,13 +985,13 @@ public class JoyentMethod {
             put.addHeader("Accept", "application/json");
             put.addHeader("X-Auth-Token", authToken);
 
-            try {
-                //noinspection deprecation
-                put.setEntity(new StringEntity(payload == null ? "" : payload, "application/json", "UTF-8"));
-            }
-            catch( UnsupportedEncodingException e ) {
-                throw new InternalException(e);
-            }
+//            try {
+//                //noinspection deprecation
+//                put.setEntity(new StringEntity(payload == null ? "" : payload, "application/json", "UTF-8"));
+//            }
+//            catch( UnsupportedEncodingException e ) {
+//                throw new InternalException(e);
+//            }
 
             if( wire.isDebugEnabled() ) {
                 wire.debug(put.getRequestLine().toString());
@@ -1116,7 +1116,7 @@ public class JoyentMethod {
                 put.addHeader("ETag", md5Hash);
             }
 
-            put.setEntity(new InputStreamEntity(stream, -1L, ContentType.APPLICATION_OCTET_STREAM));
+//            put.setEntity(new InputStreamEntity(stream, -1L, ContentType.APPLICATION_OCTET_STREAM));
             if( wire.isDebugEnabled() ) {
                 wire.debug(put.getRequestLine().toString());
                 for( Header header : put.getAllHeaders() ) {

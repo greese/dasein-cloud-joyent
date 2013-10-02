@@ -84,11 +84,17 @@
           <version>2013.07.1</version>
           <scope>test</scope>
           <optional>false</optional>
+          <exclusions>
+              <exclusion>
+                  <groupId>junit</groupId>
+                  <artifactId>junit</artifactId>
+              </exclusion>
+          </exclusions>
       </dependency>
       <dependency>
           <groupId>junit</groupId>
           <artifactId>junit</artifactId>
-          <version>4.8.2</version>
+          <version>4.9</version>
           <scope>test</scope>
       </dependency>
   </dependencies>
@@ -172,52 +178,84 @@
             <version>2.1</version>
       </plugin>
       <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>properties-maven-plugin</artifactId>
+          <version>1.0-alpha-1</version>
+          <executions>
+              <execution>
+                  <phase>initialize</phase>
+                  <goals>
+                      <goal>read-project-properties</goal>
+                  </goals>
+                  <configuration>
+                      <files>
+                          <file>${basedir}/src/test/resources/target-cloud.properties</file>
+                      </files>
+                  </configuration>
+              </execution>
+          </executions>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.6</version>
         <configuration>
-            <systemProperties>
-                <property>
-                    <name>providerClass</name>
-                    <value>${providerClass}</value>
-                </property>
-                <property>
-                    <name>endpoint</name>
-                    <value>${endpoint}</value>
-                </property>
-                <property>
-                    <name>accountNumber</name>
-                    <value>${accountNumber}</value>
-                </property>
-                <property>
-                    <name>accessPublic</name>
-                    <value>${apiSharedKey}</value>
-                </property>
-                <property>
-                    <name>accessPrivate</name>
-                    <value>${apiSecretKey}</value>
-                </property>
-                <property>
-                    <name>apiSharedKey</name>
-                    <value>${apiSharedKey}</value>
-                </property>
-                <property>
-                    <name>apiSecretKey</name>
-                    <value>${apiSecretKey}</value>
-                </property>
-                <property>
-                    <name>cloudName</name>
-                    <value>${cloudName}</value>
-                </property>
-                <property>
-                    <name>providerName</name>
-                    <value>${providerName}</value>
-                </property>
-                <property>
-                    <name>regionId</name>
-                    <value>${regionId}</value>
-                </property>
-            </systemProperties> 
+            <systemPropertyVariables>
+                <!--<property>-->
+                    <!--<name>providerClass</name>-->
+                    <!--<value>${providerClass}</value>-->
+                <!--</property>-->
+
+                <DSN_PROVIDER_CLASS>org.dasein.cloud.joyent.SmartDataCenter</DSN_PROVIDER_CLASS>
+                <DSN_ENDPOINT>https://us-west-1.api.joyentcloud.com</DSN_ENDPOINT>
+                <DSN_REGION>us-west</DSN_REGION>
+                <DSN_API_SHARED></DSN_API_SHARED>
+                <DSN_API_SECRET></DSN_API_SECRET>
+                <DSN_ACCOUNT>altoros2</DSN_ACCOUNT>
+                <DSN_CLOUD_NAME>Joyent Cloud</DSN_CLOUD_NAME>
+                <DSN_CLOUD_PROVIDER>Joyent</DSN_CLOUD_PROVIDER>
+                <DSN_CUSTOM_STORAGE_URL>https://us-east.manta.joyent.com</DSN_CUSTOM_STORAGE_URL>
+                <DSN_CUSTOM_KEY_PATH>src/test/resources/data/id_rsa</DSN_CUSTOM_KEY_PATH>
+                <DSN_CUSTOM_KEY_FINGERPRINT>58:96:8b:6a:6a:1d:93:0a:6d:fc:fb:ef:8d:c2:00:a4</DSN_CUSTOM_KEY_FINGERPRINT>
+                <DSN_CLOUD_PROVIDER>Joyent</DSN_CLOUD_PROVIDER>
+
+                <!--<property>-->
+                    <!--<name>endpoint</name>-->
+                    <!--<value>${endpoint}</value>-->
+                <!--</property>-->
+                <!--<property>-->
+                    <!--<name>accountNumber</name>-->
+                    <!--<value>${accountNumber}</value>-->
+                <!--</property>-->
+                <!--<property>-->
+                    <!--<name>accessPublic</name>-->
+                    <!--<value>${apiSharedKey}</value>-->
+                <!--</property>-->
+                <!--<property>-->
+                    <!--<name>accessPrivate</name>-->
+                    <!--<value>${apiSecretKey}</value>-->
+                <!--</property>-->
+                <!--<property>-->
+                    <!--<name>apiSharedKey</name>-->
+                    <!--<value>${apiSharedKey}</value>-->
+                <!--</property>-->
+                <!--<property>-->
+                    <!--<name>apiSecretKey</name>-->
+                    <!--<value>${apiSecretKey}</value>-->
+                <!--</property>-->
+                <!--<property>-->
+                    <!--<name>cloudName</name>-->
+                    <!--<value>${cloudName}</value>-->
+                <!--</property>-->
+                <!--<property>-->
+                    <!--<name>providerName</name>-->
+                    <!--<value>${providerName}</value>-->
+                <!--</property>-->
+                <!--<property>-->
+                    <!--<name>regionId</name>-->
+                    <!--<value>${regionId}</value>-->
+                <!--</property>-->
+            </systemPropertyVariables>
           <excludes>
             <exclude>**/TestSuite.java</exclude>
           </excludes>

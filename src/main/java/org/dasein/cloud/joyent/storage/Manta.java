@@ -7,10 +7,7 @@ import com.joyent.manta.client.MantaUtils;
 import com.joyent.manta.exception.MantaCryptoException;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.BasicConfigurator;
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.CloudProvider;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.NameRules;
+import org.dasein.cloud.*;
 import org.dasein.cloud.examples.ProviderLoader;
 import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.joyent.JoyentException;
@@ -36,6 +33,11 @@ import static org.junit.Assert.assertEquals;
  * @author ilya.drabenia
  */
 public class Manta implements BlobStoreSupport {
+    private CloudProvider provider;
+
+    public Manta(CloudProvider provider) {
+        this.provider = provider;
+    }
 
     @Override
     public boolean allowsNestedBuckets() throws CloudException, InternalException {
@@ -192,13 +194,21 @@ public class Manta implements BlobStoreSupport {
     private static final String KEY_FINGERPRINT = "58:96:8b:6a:6a:1d:93:0a:6d:fc:fb:ef:8d:c2:00:a4";
     private static final String TEST_DATA = "EPISODEII_IS_BEST_EPISODE";
     private static final String TEST_FILE = "src/test/java/data/Master-Yoda.jpg";
-    private static final String TEST_DIR_PATH = "/altoros2/stor/" + UUID.randomUUID().toString() + "/";
+    private static final String TEST_DIR_PATH = "/altoros2/stor/";// + UUID.randomUUID().toString() + "/";
 
     @Nonnull
     @Override
     public Blob upload(@Nonnull File sourceFile, @Nullable String bucket, @Nonnull String objectName)
             throws CloudException, InternalException {
+        BasicConfigurator.configure();
         try {
+            ProviderContext context = provider.getContext();
+
+            final String LOGIN = context.getAccountNumber();
+            final String URL = (String) context.getCustomProperties().get("STORAGE_URL");
+            final String KEY_PATH = (String) context.getCustomProperties().get("KEY_PATH");
+            final String KEY_FINGERPRINT = (String) context.getCustomProperties().get("KEY_FINGERPRINT");
+
             MantaClient client = MantaClient.newInstance(URL, LOGIN, KEY_PATH, KEY_FINGERPRINT);
             client.putDirectory(TEST_DIR_PATH, null);
 
