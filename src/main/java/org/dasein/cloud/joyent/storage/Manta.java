@@ -219,7 +219,7 @@ public class Manta implements BlobStoreSupport {
             mantaObject.setDataInputStream(is);
             mantaClient.put(mantaObject);
 
-            return Blob.getInstance(null, null, null, new Date().getTime());
+            return Blob.getInstance("", objectName, "", new Date().getTime());
         } catch (IOException ex) {
             throw new CloudException(ex);
         } catch (MantaCryptoException ex) {
@@ -235,16 +235,20 @@ public class Manta implements BlobStoreSupport {
             @Override
             public void run() {
                 try {
-                    fileTransfer.setStartTime(new Date().getTime());
-                    fileTransfer.setPercentComplete(0);
+                    synchronized (fileTransfer) {
+                        fileTransfer.setStartTime(new Date().getTime());
+                        fileTransfer.setPercentComplete(0);
+                    }
 
                     MantaObject mantaObject = mantaClient.get(objectName);
                     FileUtils.copyInputStreamToFile(mantaObject.getDataInputStream(), toFile);
 
-                    fileTransfer.setPercentComplete(100);
-                    fileTransfer.setBytesToTransfer(0);
-                    fileTransfer.setBytesTransferred(mantaObject.getContentLength());
-                    fileTransfer.completeWithResult(toFile);
+                    synchronized (fileTransfer) {
+                        fileTransfer.setPercentComplete(100);
+                        fileTransfer.setBytesToTransfer(0);
+                        fileTransfer.setBytesTransferred(mantaObject.getContentLength());
+                        fileTransfer.completeWithResult(toFile);
+                    }
                 } catch (Exception ex) {
                     logger.error("Error on file download from Manta Storage", ex);
                     fileTransfer.complete(ex);

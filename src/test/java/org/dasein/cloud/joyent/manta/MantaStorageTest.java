@@ -39,10 +39,17 @@ public class MantaStorageTest {
                 String.valueOf(new Date().getTime()), ""));
 
         while (!fileTransfer.isComplete()) {
-            Thread.sleep(100L);
+            synchronized (fileTransfer) {
+                fileTransfer.wait(10000L);
+            }
         }
 
-        assertTrue(fileTransfer.getTransferError().toString(), fileTransfer.getTransferError() == null);
+        assertThatFileSuccessfullyDownloaded(fileTransfer);
+    }
+
+    private void assertThatFileSuccessfullyDownloaded(FileTransfer fileTransfer) {
+        Throwable error = fileTransfer.getTransferError();
+        assertTrue(error != null ? error.toString() : "", error == null);
     }
 
 }
