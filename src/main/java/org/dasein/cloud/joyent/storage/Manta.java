@@ -7,10 +7,12 @@ import com.joyent.manta.client.MantaUtils;
 import com.joyent.manta.exception.MantaCryptoException;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Logger;
 import org.dasein.cloud.*;
 import org.dasein.cloud.examples.ProviderLoader;
 import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.joyent.JoyentException;
+import org.dasein.cloud.joyent.SmartDataCenter;
 import org.dasein.cloud.storage.Blob;
 import org.dasein.cloud.storage.BlobStoreSupport;
 import org.dasein.cloud.storage.FileTransfer;
@@ -19,13 +21,11 @@ import org.dasein.util.uom.storage.Byte;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.Date;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 
@@ -33,10 +33,25 @@ import static org.junit.Assert.assertEquals;
  * @author ilya.drabenia
  */
 public class Manta implements BlobStoreSupport {
-    private CloudProvider provider;
+    private static final Logger logger = SmartDataCenter.getLogger(MantaStorageServices.class, "std");
 
-    public Manta(CloudProvider provider) {
+    private CloudProvider provider;
+    private final MantaClient mantaClient;
+
+    public Manta(CloudProvider provider) throws IOException, CloudException {
         this.provider = provider;
+        this.mantaClient = getClient();
+    }
+
+    private MantaClient getClient() throws CloudException, IOException {
+        ProviderContext context = provider.getContext();
+
+        final String LOGIN = context.getAccountNumber();
+        final String URL = (String) context.getCustomProperties().get("STORAGE_URL");
+        final String KEY_PATH = (String) context.getCustomProperties().get("KEY_PATH");
+        final String KEY_FINGERPRINT = (String) context.getCustomProperties().get("KEY_FINGERPRINT");
+
+        return MantaClient.newInstance(URL, LOGIN, KEY_PATH, KEY_FINGERPRINT);
     }
 
     @Override
@@ -68,11 +83,6 @@ public class Manta implements BlobStoreSupport {
         } catch (Exception ex) {
 
         }
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
-    }
-
-    @Override
-    public FileTransfer download(@Nullable String bucket, @Nonnull String objectName, @Nonnull File toFile) throws InternalException, CloudException {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
@@ -202,20 +212,12 @@ public class Manta implements BlobStoreSupport {
             throws CloudException, InternalException {
         BasicConfigurator.configure();
         try {
-            ProviderContext context = provider.getContext();
-
-            final String LOGIN = context.getAccountNumber();
-            final String URL = (String) context.getCustomProperties().get("STORAGE_URL");
-            final String KEY_PATH = (String) context.getCustomProperties().get("KEY_PATH");
-            final String KEY_FINGERPRINT = (String) context.getCustomProperties().get("KEY_FINGERPRINT");
-
-            MantaClient client = MantaClient.newInstance(URL, LOGIN, KEY_PATH, KEY_FINGERPRINT);
-            client.putDirectory(TEST_DIR_PATH, null);
+            mantaClient.putDirectory(TEST_DIR_PATH, null);
 
             MantaObject mantaObject = new MantaObject(objectName);
             InputStream is = new FileInputStream(sourceFile);
             mantaObject.setDataInputStream(is);
-            client.put(mantaObject);
+            mantaClient.put(mantaObject);
 
             return Blob.getInstance(null, null, null, new Date().getTime());
         } catch (IOException ex) {
@@ -223,6 +225,34 @@ public class Manta implements BlobStoreSupport {
         } catch (MantaCryptoException ex) {
             throw new CloudException(ex);
         }
+    }
+
+    @Override
+    public FileTransfer download(@Nullable String bucket, @Nonnull final String objectName, final @Nonnull File toFile) throws InternalException, CloudException {
+        final FileTransfer fileTransfer = new FileTransfer();
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    fileTransfer.setStartTime(new Date().getTime());
+                    fileTransfer.setPercentComplete(0);
+
+                    MantaObject mantaObject = mantaClient.get(objectName);
+                    FileUtils.copyInputStreamToFile(mantaObject.getDataInputStream(), toFile);
+
+                    fileTransfer.setPercentComplete(100);
+                    fileTransfer.setBytesToTransfer(0);
+                    fileTransfer.setBytesTransferred(mantaObject.getContentLength());
+                    fileTransfer.completeWithResult(toFile);
+                } catch (Exception ex) {
+                    logger.error("Error on file download from Manta Storage", ex);
+                    fileTransfer.complete(ex);
+                }
+            }
+        }).start();
+
+        return fileTransfer;
     }
 
     @Nonnull
