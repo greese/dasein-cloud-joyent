@@ -23,22 +23,23 @@ public class MantaStorageTest {
     private static BlobStoreSupport storage;
 
     @BeforeClass
-    public static void initializeMantaStore() throws Exception {
+    public static void prepareMantaStore() throws Exception {
         CloudProvider provider = new ProviderLoader().getConfiguredProvider();
         storage = provider.getStorageServices().getOnlineStorageSupport();
     }
 
-    private Blob createFile() throws Exception {
+    private Blob uploadTestFile() throws Exception {
         File sourceFile = new File(SRC_FILE_PATH);
         return storage.upload(sourceFile, null, MANTA_FILE_PATH);
     }
 
     private void assertThatFileSuccessfullyDownloaded(FileTransfer fileTransfer) {
         Throwable error = fileTransfer.getTransferError();
-        assertTrue(error != null ? error.toString() : "", error == null);
+
+        assertNull("After file download Task object must not contains errors", error);
     }
 
-    private void waitUntilFileTransferred(FileTransfer fileTransfer) throws InterruptedException {
+    private void waitUntilFileDownloaded(FileTransfer fileTransfer) throws InterruptedException {
         while (!fileTransfer.isComplete()) {
             synchronized (fileTransfer) {
                 fileTransfer.wait(10000L);
@@ -48,49 +49,53 @@ public class MantaStorageTest {
 
     @Test
     public void testFileUpload() throws Exception {
-        Blob result = createFile();
+        Blob result = uploadTestFile();
 
-        assertTrue(result != null);
+        assertNotNull(result);
     }
 
     @Test
     public void testFileDownload() throws Exception {
-        createFile();
-
+        uploadTestFile();
         File toFile = File.createTempFile(String.valueOf(new Date().getTime()), "");
-        FileTransfer fileTransfer = storage.download(null, MANTA_FILE_PATH, toFile);
 
-        waitUntilFileTransferred(fileTransfer);
+        FileTransfer fileTransfer = storage.download(null, MANTA_FILE_PATH, toFile);
+        waitUntilFileDownloaded(fileTransfer);
+
         assertThatFileSuccessfullyDownloaded(fileTransfer);
         assertEquals(toFile.length(), 892907);
     }
 
     @Test
     public void testFileRemove() throws Exception {
-        createFile();
+        uploadTestFile();
 
         storage.removeObject(null, MANTA_FILE_PATH);
     }
 
     @Test
     public void testFileRename() throws Exception {
-        createFile();
+        uploadTestFile();
 
-        storage.renameObject(null, MANTA_FILE_PATH, "/altoros2/stor/1/Master-Yoda1.jpg");
+        storage.renameObject(null, MANTA_FILE_PATH, "/altoros2/stor/1/Master-Yoda-1.jpg");
     }
 
     @Test
     public void testIsPublicForPublicFile() throws Exception {
-        boolean result = storage.isPublic(null, "/altoros2/public/1/Master-Yoda.jpg");
+        final String PUBLIC_FILE_PATH = "/altoros2/public/1/Master-Yoda.jpg";
 
-        assertTrue("Public files must be stored in /{login}/public folder", result);
+        boolean isPublic = storage.isPublic(null, PUBLIC_FILE_PATH);
+
+        assertTrue("Public files must be stored in /{login}/public folder", isPublic);
     }
 
     @Test
     public void testIsPublicForNotPublicFiles() throws Exception {
-        boolean result = storage.isPublic(null, "/altoros2/stor/1/Master-Yoda.jpg");
+        final String PRIVATE_FILE_PATH = "/altoros2/stor/1/Master-Yoda.jpg";
 
-        assertFalse(result);
+        boolean isPublic = storage.isPublic(null, PRIVATE_FILE_PATH);
+
+        assertFalse(isPublic);
     }
 
     @Test
