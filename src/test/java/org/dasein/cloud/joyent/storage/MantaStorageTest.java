@@ -1,7 +1,6 @@
-package org.dasein.cloud.joyent.manta;
+package org.dasein.cloud.joyent.storage;
 
 import org.dasein.cloud.CloudProvider;
-import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.examples.ProviderLoader;
 import org.dasein.cloud.storage.Blob;
 import org.dasein.cloud.storage.BlobStoreSupport;
@@ -28,14 +27,15 @@ public class MantaStorageTest {
 
     @Test
     public void testFileUpload() throws Exception {
-        Blob result = storage.upload(new File("src/test/resources/data/Master-Yoda.jpg"), null, "Master-Yoda.jpg");
+        Blob result = storage.upload(new File("src/test/resources/data/Master-Yoda.jpg"), null,
+                "/altoros2/stor/1/Master-Yoda.jpg");
 
         assertTrue(result != null);
     }
 
     @Test
     public void testFileDownload() throws Exception {
-        FileTransfer fileTransfer = storage.download(null, "/altoros2/stor/Master-Yoda.jpg", File.createTempFile(
+        FileTransfer fileTransfer = storage.download(null, "/altoros2/stor/1/Master-Yoda.jpg", File.createTempFile(
                 String.valueOf(new Date().getTime()), ""));
 
         while (!fileTransfer.isComplete()) {
