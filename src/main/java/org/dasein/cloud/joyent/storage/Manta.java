@@ -1,5 +1,6 @@
 package org.dasein.cloud.joyent.storage;
 
+import com.google.api.client.http.HttpResponseException;
 import com.joyent.manta.client.MantaClient;
 import com.joyent.manta.client.MantaObject;
 import com.joyent.manta.exception.MantaCryptoException;
@@ -45,97 +46,214 @@ public class Manta implements BlobStoreSupport {
         return MantaClient.newInstance(URL, LOGIN, KEY_PATH, KEY_FINGERPRINT);
     }
 
+    /**
+     * Manta does not support buckets
+     * @throws CloudException
+     * @throws InternalException
+     * @return
+     */
     @Override
     public boolean allowsNestedBuckets() throws CloudException, InternalException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return false;
     }
 
+    /**
+     * Manta does not support objects on root level
+     * @throws CloudException
+     * @throws InternalException
+     * @return
+     */
     @Override
     public boolean allowsRootObjects() throws CloudException, InternalException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return false;
     }
 
+    /**
+     * Manta allow public sharing using directory public
+     * @return
+     * @throws CloudException
+     * @throws InternalException
+     */
     @Override
     public boolean allowsPublicSharing() throws CloudException, InternalException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        return true;
     }
 
+    /**
+     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * @param bucket
+     * @throws CloudException
+     * @throws InternalException
+     */
     @Override
     public void clearBucket(@Nonnull String bucket) throws CloudException, InternalException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new UnsupportedOperationException("Manta does not have support of buckets");
     }
 
+    /**
+     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * @param bucket
+     * @param findFreeName
+     * @return
+     * @throws InternalException
+     * @throws CloudException
+     */
     @Nonnull
     @Override
     public Blob createBucket(@Nonnull String bucket, boolean findFreeName) throws InternalException, CloudException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new UnsupportedOperationException("Manta does not have support of buckets");
     }
 
+    /**
+     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * @param bucket
+     * @return
+     * @throws InternalException
+     * @throws CloudException
+     */
     @Override
     public boolean exists(@Nonnull String bucket) throws InternalException, CloudException {
-        return false;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new UnsupportedOperationException("Manta does not have support of buckets");
     }
 
+    /**
+     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * @param bucketName
+     * @return
+     * @throws InternalException
+     * @throws CloudException
+     */
     @Override
     public Blob getBucket(@Nonnull String bucketName) throws InternalException, CloudException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new UnsupportedOperationException("Manta does not have support of buckets");
     }
 
+    /**
+     *
+     * @param bucketName
+     * @param objectName
+     * @return
+     * @throws InternalException
+     * @throws CloudException
+     */
     @Override
     public Blob getObject(@Nullable String bucketName, @Nonnull String objectName) throws InternalException, CloudException {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
+    /**
+     *
+     * @param bucketName
+     * @param objectName
+     * @return
+     * @throws InternalException
+     * @throws CloudException
+     */
     @Nullable
     @Override
-    public Storage<Byte> getObjectSize(@Nullable String bucketName, @Nullable String objectName) throws InternalException, CloudException {
+    public Storage<Byte> getObjectSize(@Nullable String bucketName, @Nullable String objectName)
+            throws InternalException, CloudException {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
+    /**
+     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * @return
+     * @throws CloudException
+     * @throws InternalException
+     */
     @Override
     public int getMaxBuckets() throws CloudException, InternalException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new UnsupportedOperationException("Manta does not have support of buckets");
     }
 
+    /**
+     *
+     * @return
+     * @throws InternalException
+     * @throws CloudException
+     */
     @Override
     public Storage<Byte> getMaxObjectSize() throws InternalException, CloudException {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
+    /**
+     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * @return
+     * @throws CloudException
+     * @throws InternalException
+     */
     @Override
     public int getMaxObjectsPerBucket() throws CloudException, InternalException {
-        return 0;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new UnsupportedOperationException("Manta does not have support of buckets");
     }
 
+    /**
+     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * @return
+     * @throws CloudException
+     * @throws InternalException
+     */
     @Nonnull
     @Override
     public NameRules getBucketNameRules() throws CloudException, InternalException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new UnsupportedOperationException("Manta does not have support of buckets");
     }
 
+    /**
+     *
+     * @return
+     * @throws CloudException
+     * @throws InternalException
+     */
     @Nonnull
     @Override
     public NameRules getObjectNameRules() throws CloudException, InternalException {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
+    /**
+     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * @param locale
+     * @return
+     */
     @Nonnull
     @Override
     public String getProviderTermForBucket(@Nonnull Locale locale) {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new UnsupportedOperationException("Manta does not have support of buckets");
     }
 
+    /**
+     *
+     * @param locale
+     * @return
+     */
     @Nonnull
     @Override
     public String getProviderTermForObject(@Nonnull Locale locale) {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
+    /**
+     *
+     * @param bucket
+     * @param object
+     * @return
+     * @throws CloudException
+     * @throws InternalException
+     */
     @Override
     public boolean isPublic(@Nullable String bucket, @Nullable String object) throws CloudException, InternalException {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
+    /**
+     *
+     * @return
+     * @throws CloudException
+     * @throws InternalException
+     */
     @Override
     public boolean isSubscribed() throws CloudException, InternalException {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
@@ -147,9 +265,15 @@ public class Manta implements BlobStoreSupport {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
+    /**
+     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * @param bucket
+     * @throws InternalException
+     * @throws CloudException
+     */
     @Override
     public void makePublic(@Nonnull String bucket) throws InternalException, CloudException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new UnsupportedOperationException("Manta does not have support of buckets");
     }
 
     @Override
@@ -157,40 +281,78 @@ public class Manta implements BlobStoreSupport {
         //To change body of implemented methods use File | Settings | File Templates.
     }
 
+    /**
+     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * @param fromBucket
+     * @param objectName
+     * @param toBucket
+     * @throws InternalException
+     * @throws CloudException
+     */
     @Override
-    public void move(@Nullable String fromBucket, @Nullable String objectName, @Nullable String toBucket) throws InternalException, CloudException {
-        //To change body of implemented methods use File | Settings | File Templates.
+    public void move(@Nullable String fromBucket, @Nullable String objectName, @Nullable String toBucket) throws
+            InternalException, CloudException {
+        throw new UnsupportedOperationException("Manta does not have support of buckets");
     }
 
+    /**
+     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * @param bucket
+     * @throws CloudException
+     * @throws InternalException
+     */
     @Override
     public void removeBucket(@Nonnull String bucket) throws CloudException, InternalException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void removeObject(@Nullable String bucket, @Nonnull String object) throws CloudException, InternalException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            mantaClient.delete(object);
+        } catch (MantaCryptoException ex) {
+            throw new CloudException(ex);
+        } catch (IOException ex) {
+            throw new CloudException(ex);
+        }
     }
 
+    /**
+     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * @param oldName
+     * @param newName
+     * @param findFreeName
+     * @return
+     * @throws CloudException
+     * @throws InternalException
+     */
     @Nonnull
     @Override
     public String renameBucket(@Nonnull String oldName, @Nonnull String newName, boolean findFreeName) throws CloudException, InternalException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void renameObject(@Nullable String bucket, @Nonnull String oldName, @Nonnull String newName) throws CloudException, InternalException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        try {
+            mantaClient.putSnapLink(newName, oldName, null);
+            mantaClient.delete(oldName);
+        } catch (MantaCryptoException ex) {
+            throw new CloudException(ex);
+        } catch (IOException ex) {
+            throw new CloudException(ex);
+        }
     }
 
-    private static final String URL = "https://us-east.manta.joyent.com";
-    private static final String LOGIN = "altoros2";
-    private static final String KEY_PATH = "src/test/java/data/id_rsa";
-    private static final String KEY_FINGERPRINT = "58:96:8b:6a:6a:1d:93:0a:6d:fc:fb:ef:8d:c2:00:a4";
-    private static final String TEST_DATA = "EPISODEII_IS_BEST_EPISODE";
-    private static final String TEST_FILE = "src/test/java/data/Master-Yoda.jpg";
-    private static final String TEST_DIR_PATH = "/altoros2/stor/";// + UUID.randomUUID().toString() + "/";
-
+    /**
+     * Method upload {@code sourceFile} as {@code objectName} to Manta.
+     * @param sourceFile
+     * @param bucket
+     * @param objectName
+     * @return
+     * @throws CloudException
+     * @throws InternalException
+     */
     @Nonnull
     @Override
     public Blob upload(@Nonnull File sourceFile, @Nullable String bucket, @Nonnull String objectName)
@@ -223,6 +385,15 @@ public class Manta implements BlobStoreSupport {
         return objectName.replaceAll("^/(.*)/", "");
     }
 
+    /**
+     * Method download file {@code objectName} from Manta to file {@code toFile}. Action occurs asynchronous.
+     * @param bucket
+     * @param objectName
+     * @param toFile
+     * @return
+     * @throws InternalException
+     * @throws CloudException
+     */
     @Override
     public FileTransfer download(@Nullable String bucket, @Nonnull final String objectName, final @Nonnull File toFile)
             throws InternalException, CloudException {
