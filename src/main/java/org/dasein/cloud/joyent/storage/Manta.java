@@ -1,9 +1,11 @@
 package org.dasein.cloud.joyent.storage;
 
+import com.google.api.client.http.HttpResponseException;
 import com.joyent.manta.client.MantaClient;
 import com.joyent.manta.client.MantaObject;
 import com.joyent.manta.exception.MantaCryptoException;
 import org.apache.commons.io.FileUtils;
+import org.apache.http.HttpStatus;
 import org.apache.log4j.Logger;
 import org.dasein.cloud.*;
 import org.dasein.cloud.identity.ServiceAction;
@@ -26,11 +28,13 @@ import java.util.Locale;
 public class Manta implements BlobStoreSupport {
     private static final Logger logger = SmartDataCenter.getLogger(MantaStorageServices.class, "std");
 
-    private CloudProvider provider;
+    private final CloudProvider provider;
     private final MantaClient mantaClient;
+    private final String regionId;
 
     public Manta(CloudProvider provider) throws IOException, CloudException {
         this.provider = provider;
+        this.regionId = provider.getContext().getRegionId();
         this.mantaClient = getClient();
     }
 
@@ -152,6 +156,7 @@ public class Manta implements BlobStoreSupport {
     }
 
     /**
+     * Manta does not support this operation.
      *
      * @param bucketName
      * @param objectName
@@ -163,7 +168,7 @@ public class Manta implements BlobStoreSupport {
     @Override
     public Storage<Byte> getObjectSize(@Nullable String bucketName, @Nullable String objectName)
             throws InternalException, CloudException {
-        return null;
+        throw new UnsupportedOperationException("Manta does not support operation");
     }
 
     /**
@@ -223,7 +228,8 @@ public class Manta implements BlobStoreSupport {
     @Nonnull
     @Override
     public NameRules getObjectNameRules() throws CloudException, InternalException {
-        return null;
+        // list of allowed characters may be incomplete
+        return NameRules.getInstance(1, Integer.MAX_VALUE, true, true, false, new char[] {'-', '.', '\\'});
     }
 
     /**
@@ -247,7 +253,7 @@ public class Manta implements BlobStoreSupport {
     @Override
     public String getProviderTermForObject(@Nonnull Locale locale) {
         // TODO: Unknown semantics
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return "object";
     }
 
     /**
@@ -268,10 +274,28 @@ public class Manta implements BlobStoreSupport {
         }
     }
 
+    /**
+     * Method check if access to cloud is available
+     *
+     * @return
+     * @throws CloudException
+     * @throws InternalException
+     */
     @Override
     public boolean isSubscribed() throws CloudException, InternalException {
-        // TODO: unknown method semantics
-        return false;
+        try {
+            mantaClient.listObjects("/" + provider.getContext().getAccountNumber() + "/stor");
+
+            return true;
+        } catch (HttpResponseException ex) {
+            if (ex.getStatusCode() == HttpStatus.SC_FORBIDDEN) {
+                return false;
+            }
+
+            throw new CloudException(ex);
+        } catch (Exception ex) {
+            throw new CloudException(ex);
+        }
     }
 
     @Nonnull
@@ -431,15 +455,11 @@ public class Manta implements BlobStoreSupport {
         mantaObject.setDataInputStream(new FileInputStream(sourceFile));
         mantaClient.put(mantaObject);
 
-        return Blob.getInstance("", objectName, "", new Date().getTime());
+        return Blob.getInstance("", objectName, regionId, new Date().getTime());
     }
 
     private String parseDirectoryName(@Nonnull String objectName) {
         return objectName.substring(0, objectName.lastIndexOf('/') + 1);
-    }
-
-    private String parseFileName(@Nonnull String objectName) {
-        return objectName.replaceAll("^/(.*)/", "");
     }
 
     /**

@@ -105,4 +105,11 @@ public class MantaStorageTest {
         assertTrue("Files in Manta has unlimited size", size > 1000000);
     }
 
+    @Test
+    public void testIsSubscribed() throws Exception {
+        boolean isSubscribed = storage.isSubscribed();
+
+        assertTrue("For make tests on real cloud client must be subscribed", isSubscribed);
+    }
+
 }
