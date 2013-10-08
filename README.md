@@ -10,7 +10,7 @@ an implementation of the Dasein Cloud API for the Joyent Cloud and the SDC platf
 Installation
 -------------------
 
-# Maven
+### Maven
 
 You need [maven](https://maven.apache.org/) to build this library. After you installed maven run:
 
@@ -21,11 +21,12 @@ Then you can use dasein-cloud-joyent/target/dasein-cloud-joyent-{version}.jar as
 Configuration
 -------------------
 
-To connect to Joynet Manta Sevice you can use ProviderLoader classes.
+To connect to Joynet Manta Sevice you can use ProviderLoader class.
 
-# Provider loader
+### Provider loader
 
-This is a pre-configured class where you have to specify the following system properties.
+This class creates ProviderContext object with all necessary data. You have to specify the following system properties to
+pass data into ProviderContext object.
 
 Required properties:
 
@@ -47,7 +48,7 @@ Usage
 
 Here is some basic usage of Dasein Cloud Joyent submodule:
 
-## Add maven dependency
+### Add maven dependency
 
     <dependencies>
       <!-- API -->
@@ -68,7 +69,7 @@ Here is some basic usage of Dasein Cloud Joyent submodule:
       </dependency>
     </dependencies>
 
-## Set variables
+### Set variables
 
 You can set variables inside maven using maven-surfire-plugin:
 
@@ -122,7 +123,7 @@ Unix:
     export DSN_CUSTOM_KEY_FINGERPRINT="04:92:7b:23:bc:08:4f:d7:3b:5a:38:9e:4a:17:2e:df"
     export DSN_CLOUD_PROVIDER="Joyent"
 
-## Upload sample
+### Upload sample
 
     package org.example.dasein.storage;
 
