@@ -1,6 +1,8 @@
 package org.dasein.cloud.joyent.storage;
 
+import org.dasein.cloud.CloudException;
 import org.dasein.cloud.CloudProvider;
+import org.dasein.cloud.InternalException;
 import org.dasein.cloud.examples.ProviderLoader;
 import org.dasein.cloud.storage.Blob;
 import org.dasein.cloud.storage.BlobStoreSupport;
@@ -10,6 +12,7 @@ import org.dasein.cloud.storage.FileTransfer;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.util.Date;
 
@@ -18,7 +21,8 @@ import java.util.Date;
  */
 public class MantaStorageTest {
     private static final String SRC_FILE_PATH = "src/test/resources/data/Master-Yoda.jpg";
-    private static final String MANTA_FILE_PATH = "/altoros2/stor/1/Master-Yoda.jpg";
+    private static final String MANTA_DIR_PATH = "/altoros2/stor/1/";
+    private static final String MANTA_FILE_PATH = MANTA_DIR_PATH + "Master-Yoda.jpg";
 
     private static BlobStoreSupport storage;
 
@@ -112,4 +116,49 @@ public class MantaStorageTest {
         assertTrue("For make tests on real cloud client must be subscribed", isSubscribed);
     }
 
+    /**
+     * Note that current Manta Java API does not support recursive directory creation (i.e. mmkdir -p command in Node.js SDK)
+     * @throws Exception
+     */
+    @Test
+    public void testDirectoryCreate() throws Exception {
+        Blob bucket = createBucket(MANTA_DIR_PATH);
+
+        assertNotNull(bucket);
+        assertNull("Manta directory must not have an object name", bucket.getObjectName());
+        assertNotNull("Bucket name must be presented for Manta directories", bucket.getBucketName());
+        assertEquals(bucket.getBucketName(), MANTA_DIR_PATH);
+        assertTrue("Manta directory must be a container", bucket.isContainer());
+    }
+
+    @Test
+    public void testDirectoryList() throws Exception {
+        createBucket(MANTA_DIR_PATH);
+        createBucket(MANTA_DIR_PATH + "foo/");
+        uploadTestFile();
+        Iterable<Blob> blobs = storage.list(MANTA_DIR_PATH);
+
+        assertTrue(blobs.iterator().hasNext());
+    }
+
+    @Test
+    public void testDirectoryClear() throws Exception {
+        Blob parent = createBucket(MANTA_DIR_PATH);
+        storage.clearBucket(parent.getBucketName());
+        Iterable<Blob> blobs = storage.list(parent.getBucketName());
+
+        assertFalse(blobs.iterator().hasNext());
+    }
+
+    @Test
+    public void testDirectoryExists() throws Exception {
+        createBucket(MANTA_DIR_PATH);
+
+        assertTrue(storage.exists(MANTA_DIR_PATH));
+    }
+
+    @Nonnull
+    private Blob createBucket(@Nonnull String name) throws InternalException, CloudException {
+        return storage.createBucket(name, false);
+    }
 }

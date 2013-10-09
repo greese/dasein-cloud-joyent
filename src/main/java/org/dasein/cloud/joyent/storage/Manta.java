@@ -4,6 +4,7 @@ import com.google.api.client.http.HttpResponseException;
 import com.joyent.manta.client.MantaClient;
 import com.joyent.manta.client.MantaObject;
 import com.joyent.manta.exception.MantaCryptoException;
+import com.joyent.manta.exception.MantaObjectException;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpStatus;
 import org.apache.log4j.Logger;
@@ -19,6 +20,8 @@ import org.dasein.util.uom.storage.Byte;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.*;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Locale;
 
@@ -50,7 +53,7 @@ public class Manta implements BlobStoreSupport {
     }
 
     /**
-     * Manta does not support buckets
+     * Manta supports directories with sub-directories in /:login/stor or /:login/public but Manta Java API is not, yet.
      *
      * @throws CloudException
      * @throws InternalException
@@ -86,43 +89,66 @@ public class Manta implements BlobStoreSupport {
     }
 
     /**
-     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * Manta deletes all directory content and creates an empty directory with the same name.
      *
-     * @param bucket
+     * @param bucket directory path
      * @throws CloudException
      * @throws InternalException
      */
     @Override
     public void clearBucket(@Nonnull String bucket) throws CloudException, InternalException {
-        throw new UnsupportedOperationException("Manta does not have support of buckets");
+        String directoryName = parseDirectoryName(bucket);
+        try {
+            mantaClient.deleteRecursive(directoryName);
+            mantaClient.putDirectory(directoryName, null);
+        } catch (MantaCryptoException e) {
+            throw new CloudException(e);
+        } catch (IOException e) {
+            throw new CloudException(e);
+        }
     }
 
     /**
-     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * Manta creates new directory.
      *
-     * @param bucket
-     * @param findFreeName
-     * @return
+     * @param bucket directory path
+     * @param findFreeName is not supported and ignored
+     * @return cloud storage object
      * @throws InternalException
      * @throws CloudException
      */
     @Nonnull
     @Override
     public Blob createBucket(@Nonnull String bucket, boolean findFreeName) throws InternalException, CloudException {
-        throw new UnsupportedOperationException("Manta does not have support of buckets");
+        try {
+            mantaClient.putDirectory(bucket, null);
+        } catch (IOException e) {
+            throw new CloudException(e);
+        } catch (MantaCryptoException e) {
+            throw new CloudException(e);
+        }
+        return Blob.getInstance(regionId, "", bucket, new Date().getTime());
     }
 
     /**
-     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * Checks if bucket exists. Gets directory metadata, if anything returned, bucket exists.
      *
-     * @param bucket
-     * @return
+     * @param bucket directory path
+     * @return true if bucket exists, false otherwise
      * @throws InternalException
      * @throws CloudException
      */
     @Override
     public boolean exists(@Nonnull String bucket) throws InternalException, CloudException {
-        throw new UnsupportedOperationException("Manta does not have support of buckets");
+        MantaObject mantaObject;
+        try {
+            mantaObject = mantaClient.head(bucket);
+        } catch (MantaCryptoException e) {
+            throw new CloudException(e);
+        } catch (IOException e) {
+            throw new CloudException(e);
+        }
+        return mantaObject != null;
     }
 
     /**
@@ -301,8 +327,32 @@ public class Manta implements BlobStoreSupport {
     @Nonnull
     @Override
     public Iterable<Blob> list(@Nullable String bucket) throws CloudException, InternalException {
-        // TODO: This method is important. But for Manta we need to have other signature - list(String directory)
-        return null;
+        if (bucket == null) {
+            throw new OperationNotSupportedException("Bucket is a directory in Manta and it cannot be null");
+        }
+        Collection<MantaObject> mantaObjects;
+        Collection<Blob> result = new ArrayList<Blob>();
+        try {
+            mantaObjects = mantaClient.listObjects(bucket);
+        } catch (MantaCryptoException e) {
+            throw new CloudException(e);
+        } catch (IOException e) {
+            throw new CloudException(e);
+        } catch (MantaObjectException e) {
+            throw new CloudException(e);
+        }
+        for (MantaObject mantaObject : mantaObjects) {
+            String dirName = parseDirectoryName(mantaObject.getPath());
+            if (mantaObject.isDirectory()) {
+                result.add(Blob.getInstance(regionId, "", dirName, new Date().getTime()));
+            } else {
+                String objectName = parseObjectName(mantaObject.getPath());
+                result.add(Blob.getInstance(regionId, "", dirName, objectName, new Date().getTime(),
+                        new Storage<Byte>(mantaObject.getContentLength(), Storage.BYTE)
+                ));
+            }
+        }
+        return result;
     }
 
     /**
@@ -449,17 +499,23 @@ public class Manta implements BlobStoreSupport {
      */
     private Blob processFileUpload(@Nonnull File sourceFile, @Nonnull String objectName) throws IOException,
             MantaCryptoException {
-        mantaClient.putDirectory(parseDirectoryName(objectName), null);
+        String dirName = parseDirectoryName(objectName);
+        mantaClient.putDirectory(dirName, null);
 
         MantaObject mantaObject = new MantaObject(objectName);
         mantaObject.setDataInputStream(new FileInputStream(sourceFile));
         mantaClient.put(mantaObject);
 
-        return Blob.getInstance("", objectName, regionId, new Date().getTime());
+        return Blob.getInstance(regionId, "", dirName, objectName , new Date().getTime(),
+                new Storage<Byte>(sourceFile.length(), Storage.BYTE));
     }
 
     private String parseDirectoryName(@Nonnull String objectName) {
         return objectName.substring(0, objectName.lastIndexOf('/') + 1);
+    }
+
+    private String parseObjectName(@Nonnull String path) {
+        return path.substring(path.lastIndexOf('/') + 1);
     }
 
     /**
