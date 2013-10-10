@@ -28,7 +28,7 @@ To connect to Joynet Manta Sevice you can use ProviderLoader class.
 This class creates ProviderContext object with all necessary data. You have to specify the following system properties to
 pass data into ProviderContext object.
 
-Required properties:
+Manta configuration properties:
 
     DSN_PROVIDER_CLASS=org.dasein.cloud.joyent.SmartDataCenter
     DSN_CUSTOM_STORAGE_URL=<MANTA_URL>
@@ -36,12 +36,16 @@ Required properties:
     DSN_CUSTOM_KEY_PATH=<MANTA_RSA_PUB_KEY>
     DSN_CUSTOM_KEY_FINGERPRINT=<MANTA_RSA_FINGERPRINT>
 
-Optional properties (see Dasein Cloud Joyent [configuration](https://github.com/greese/dasein-cloud-joyent/wiki/Configuration)):
+Dasein properties (see Dasein Cloud Joyent [configuration](https://github.com/greese/dasein-cloud-joyent/wiki/Configuration)):
 
+    DSN_API_SHARED=<Redundant value required by DSN. Must not be empty>
+    DSN_API_SECRET=<Redundant value required by DSN. Must not be empty>
     DSN_ENDPOINT=<DASEIN_ROUTE_URL> (alias for "endpoint" provider context value)
     DSN_REGION=<DASEIN_REGION> (alias for "regionId")
     DSN_CLOUD_NAME=<DASEIN_CLOUD_NAME> (alias for "cloudName")
     DSN_CLOUD_PROVIDER=<DASEIN_CLOUD_PROVIDER> (alias for "providerName")
+
+All properties are REQUIRED.
 
 Usage
 -------------------
@@ -109,6 +113,9 @@ Windows:
     setx DSN_CUSTOM_KEY_PATH src/test/resources/data/id_rsa
     setx DSN_CUSTOM_KEY_FINGERPRINT 04:92:7b:23:bc:08:4f:d7:3b:5a:38:9e:4a:17:2e:df
     setx DSN_CLOUD_PROVIDER Joyent
+    setx DSN_API_SHARED=
+    setx DSN_API_SECRET=
+
 
 Unix:
 
@@ -122,6 +129,9 @@ Unix:
     export DSN_CUSTOM_KEY_PATH="src/test/resources/data/id_rsa"
     export DSN_CUSTOM_KEY_FINGERPRINT="04:92:7b:23:bc:08:4f:d7:3b:5a:38:9e:4a:17:2e:df"
     export DSN_CLOUD_PROVIDER="Joyent"
+    export DSN_API_SHARED=""
+    export DSN_API_SECRET=""
+
 
 ### Upload sample
 
