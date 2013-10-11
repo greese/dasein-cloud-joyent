@@ -9,8 +9,8 @@ import org.dasein.cloud.storage.BlobStoreSupport;
 import static org.junit.Assert.*;
 
 import org.dasein.cloud.storage.FileTransfer;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.rules.ExpectedException;
 
 import javax.annotation.Nonnull;
 import java.io.File;
@@ -18,11 +18,13 @@ import java.util.Date;
 
 /**
  * @author ilya.drabenia
+ * @author anton.karavaev
  */
 public class MantaStorageTest {
     private static final String SRC_FILE_PATH = "src/test/resources/data/Master-Yoda.jpg";
     private static final String MANTA_DIR_PATH = "/altoros2/stor/1/";
-    private static final String MANTA_FILE_PATH = MANTA_DIR_PATH + "Master-Yoda.jpg";
+    private static final String MANTA_FILE_NAME = "Master-Yoda.jpg";
+    private static final String MANTA_FILE_PATH = MANTA_DIR_PATH + MANTA_FILE_NAME;
 
     private static BlobStoreSupport storage;
 
@@ -32,9 +34,14 @@ public class MantaStorageTest {
         storage = provider.getStorageServices().getOnlineStorageSupport();
     }
 
+    @AfterClass
+    public static void tearDown() throws Exception {
+        storage.removeBucket(MANTA_DIR_PATH);
+    }
+
     private Blob uploadTestFile() throws Exception {
         File sourceFile = new File(SRC_FILE_PATH);
-        return storage.upload(sourceFile, null, MANTA_FILE_PATH);
+        return storage.upload(sourceFile, MANTA_DIR_PATH, MANTA_FILE_NAME);
     }
 
     private void assertThatFileSuccessfullyDownloaded(FileTransfer fileTransfer) {
@@ -86,9 +93,9 @@ public class MantaStorageTest {
 
     @Test
     public void testIsPublicForPublicFile() throws Exception {
-        final String PUBLIC_FILE_PATH = "/altoros2/public/1/Master-Yoda.jpg";
+        final String PUBLIC_FILE_PATH = "/altoros2/public/1/";
 
-        boolean isPublic = storage.isPublic(null, PUBLIC_FILE_PATH);
+        boolean isPublic = storage.isPublic(PUBLIC_FILE_PATH, MANTA_FILE_NAME);
 
         assertTrue("Public files must be stored in /{login}/public folder", isPublic);
     }
@@ -118,6 +125,7 @@ public class MantaStorageTest {
 
     /**
      * Note that current Manta Java API does not support recursive directory creation (i.e. mmkdir -p command in Node.js SDK)
+     *
      * @throws Exception
      */
     @Test
@@ -160,5 +168,42 @@ public class MantaStorageTest {
     @Nonnull
     private Blob createBucket(@Nonnull String name) throws InternalException, CloudException {
         return storage.createBucket(name, false);
+    }
+
+    @Rule
+    public ExpectedException expected = ExpectedException.none();
+
+    @Test(expected = CloudException.class)
+    public void testDirectoryRemove() throws Exception {
+        String path = MANTA_DIR_PATH + "2/";
+        createBucket(MANTA_DIR_PATH);
+        createBucket(path);
+        storage.removeBucket(path);
+        storage.getBucket(path);
+    }
+
+    @Test
+    public void testGetBucket() throws Exception {
+        createBucket(MANTA_DIR_PATH);
+        Blob bucket = storage.getBucket(MANTA_DIR_PATH);
+
+        assertNotNull(bucket);
+    }
+
+    @Test
+    public void testGetObject() throws Exception {
+        uploadTestFile();
+        Blob blob = storage.getObject(MANTA_DIR_PATH, MANTA_FILE_NAME);
+
+        assertNotNull(blob);
+    }
+
+    // TODO: Test is ignored until Measured.convertTo will work correct
+    @Ignore
+    @Test
+    public void testGetObjectSize() throws Exception {
+        Blob blob = uploadTestFile();
+        // Measured.convertTo returns double. Test is disabled
+        assertTrue(blob.getSize().getQuantity().equals(storage.getObjectSize(MANTA_DIR_PATH, MANTA_FILE_NAME).getQuantity()));
     }
 }

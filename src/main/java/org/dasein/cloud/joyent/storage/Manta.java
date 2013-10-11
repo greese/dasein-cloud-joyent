@@ -20,13 +20,11 @@ import org.dasein.util.uom.storage.Byte;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.Locale;
+import java.util.*;
 
 /**
  * @author ilya.drabenia
+ * @author anton.karavaev
  */
 public class Manta implements BlobStoreSupport {
     private static final Logger logger = SmartDataCenter.getLogger(MantaStorageServices.class, "std");
@@ -152,41 +150,80 @@ public class Manta implements BlobStoreSupport {
     }
 
     /**
-     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * Returns {@link Blob} representation of Manta directory.
      *
-     * @param bucketName
-     * @return
+     * @param bucketName directory path
+     *
+     * @return {@link Blob} representation of Manta directory
+     *
      * @throws InternalException
-     * @throws CloudException
+     * @throws CloudException if bucket name is not directory or bucket not found
      */
+    @Nonnull
     @Override
     public Blob getBucket(@Nonnull String bucketName) throws InternalException, CloudException {
-        throw new UnsupportedOperationException("Manta does not have support of buckets");
+        MantaObject mantaObject;
+        try {
+            mantaObject = mantaClient.head(bucketName);
+        } catch (IOException e) {
+            throw new CloudException(e);
+        } catch (MantaCryptoException e) {
+            throw new CloudException(e);
+        }
+        if (isDirectory(mantaObject)) {
+            return Blob.getInstance(regionId, "", bucketName, new Date().getTime());
+        } else {
+            throw new CloudException("Bucket \"" + bucketName + "\" is not a directory");
+        }
     }
 
     /**
+     * {@link com.joyent.manta.client.MantaObject#isDirectory()} works only after listObjects(String path) method.
      *
-     * @param bucketName
-     * @param objectName
+     * @param mantaObject
      * @return
+     */
+    private boolean isDirectory(MantaObject mantaObject) {
+        return mantaObject.getHttpHeaders().getContentType().equals(MantaObject.DIRECTORY_HEADER);
+    }
+
+    /**
+     * {@link com.joyent.manta.client.MantaObject#getContentLength()} works only after listObjects(String path) method.
+     *
+     * @param mantaObject
+     * @return
+     */
+    private long getContentLength(MantaObject mantaObject) {
+        return mantaObject.getHttpHeaders().getContentLength();
+    }
+
+    /**
+     * Returns {@link Blob} representation of {@link MantaObject}.
+     *
+     * @param bucketName directory path
+     * @param objectName object name
+     *
+     * @return {@link Blob} representation of {@link MantaObject}.
+     *
      * @throws InternalException
      * @throws CloudException
      */
+    @Nonnull
     @Override
     public Blob getObject(@Nullable String bucketName, @Nonnull String objectName) throws InternalException,
             CloudException {
-//        MantaObject mantaObject = mantaClient.head(objectName);
-
-
-        return null;
+        MantaObject mantaObject = loadMantaObjectMetadata(bucketName, objectName);
+        String dirName = parseDirectoryName(mantaObject.getPath());
+        return Blob.getInstance(regionId, "", dirName, objectName, new Date().getTime(),
+                new Storage<Byte>(getContentLength(mantaObject), Storage.BYTE));
     }
 
     /**
-     * Manta does not support this operation.
+     * Returns {@link Storage} of {@link MantaObject}.
      *
-     * @param bucketName
-     * @param objectName
-     * @return
+     * @param bucketName directory path
+     * @param objectName object name
+     * @return {@link Storage} of {@link MantaObject}
      * @throws InternalException
      * @throws CloudException
      */
@@ -194,24 +231,55 @@ public class Manta implements BlobStoreSupport {
     @Override
     public Storage<Byte> getObjectSize(@Nullable String bucketName, @Nullable String objectName)
             throws InternalException, CloudException {
-        throw new UnsupportedOperationException("Manta does not support operation");
+        Storage<Byte> storage = null;
+        if (objectName != null) {
+            MantaObject mantaObject = loadMantaObjectMetadata(bucketName, objectName);
+            storage = new Storage<Byte>(getContentLength(mantaObject), Storage.BYTE);
+        }
+        return storage;
     }
 
     /**
-     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * Loads {@link MantaObject}. If no path is presented, loads from root /:login/stor/ private directory.
      *
+     * @param path path to object
+     * @param name object name
      * @return
+     */
+    @Nonnull
+    private MantaObject loadMantaObjectMetadata(@Nullable String path, @Nonnull String name) throws CloudException {
+        MantaObject mantaObject;
+        try {
+            if (path != null) {
+                mantaObject = mantaClient.head(path + name);
+            } else {
+                String accountName = provider.getContext().getAccountNumber();
+                mantaObject = mantaClient.head("/" + accountName + "/stor/" + name);
+            }
+        } catch (MantaCryptoException e) {
+            throw new CloudException(e);
+        } catch (IOException e) {
+            throw new CloudException(e);
+        }
+        return mantaObject;
+    }
+
+    /**
+     * According to this <a href=http://apidocs.joyent.com/manta/#directories>doc</a> there is no limit for directories
+     * and sub-directories.
+     *
+     * @return max directories
      * @throws CloudException
      * @throws InternalException
      */
     @Override
     public int getMaxBuckets() throws CloudException, InternalException {
-        throw new UnsupportedOperationException("Manta does not have support of buckets");
+        return Integer.MAX_VALUE;
     }
 
     /**
-     *
-     * @return
+     * According to this <a href=http://apidocs.joyent.com/manta/#directories>doc</a> there is no limit for object size.
+     * @return max object size
      * @throws InternalException
      * @throws CloudException
      */
@@ -221,15 +289,16 @@ public class Manta implements BlobStoreSupport {
     }
 
     /**
-     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * According to this <a href=http://apidocs.joyent.com/manta/#directories>doc</a> Manta limits objects per single
+     * directory to 1,000,000.
      *
-     * @return
+     * @return objects limit per single directory
      * @throws CloudException
      * @throws InternalException
      */
     @Override
     public int getMaxObjectsPerBucket() throws CloudException, InternalException {
-        throw new UnsupportedOperationException("Manta does not have support of buckets");
+        return 1000000;
     }
 
     /**
@@ -242,7 +311,7 @@ public class Manta implements BlobStoreSupport {
     @Nonnull
     @Override
     public NameRules getBucketNameRules() throws CloudException, InternalException {
-        throw new UnsupportedOperationException("Manta does not have support of buckets");
+        return NameRules.getInstance(1, Integer.MAX_VALUE, true, true, false, new char[] {'-', '.', '\\'});
     }
 
     /**
@@ -259,7 +328,7 @@ public class Manta implements BlobStoreSupport {
     }
 
     /**
-     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * Provider term for bucket in Manta is "directory".
      *
      * @param locale
      * @return
@@ -267,7 +336,7 @@ public class Manta implements BlobStoreSupport {
     @Nonnull
     @Override
     public String getProviderTermForBucket(@Nonnull Locale locale) {
-        throw new UnsupportedOperationException("Manta does not have support of buckets");
+        return "directory";
     }
 
     /**
@@ -278,23 +347,23 @@ public class Manta implements BlobStoreSupport {
     @Nonnull
     @Override
     public String getProviderTermForObject(@Nonnull Locale locale) {
-        // TODO: Unknown semantics
         return "object";
     }
 
     /**
+     * Manta public storage is located in /:login/public/ directory.
      *
-     * @param bucket
-     * @param object
+     * @param bucket directory path
+     * @param object object name not used since manta checks only directory path
      * @return
      * @throws CloudException
      * @throws InternalException
      */
     @Override
     public boolean isPublic(@Nullable String bucket, @Nullable String object) throws CloudException, InternalException {
-        if (object != null) {
+        if (bucket != null) {
             String accountName = this.provider.getContext().getAccountNumber();
-            return object.startsWith("/" + accountName + "/public");
+            return bucket.startsWith("/" + accountName + "/public");
         } else {
             return false;
         }
@@ -356,7 +425,8 @@ public class Manta implements BlobStoreSupport {
     }
 
     /**
-     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * Manta has to move directory to /:login/public to make directory public. It violates Daseign rules.
+     * Method throws {@link OperationNotSupportedException}.
      *
      * @param bucket
      * @throws InternalException
@@ -364,11 +434,12 @@ public class Manta implements BlobStoreSupport {
      */
     @Override
     public void makePublic(@Nonnull String bucket) throws InternalException, CloudException {
-        throw new UnsupportedOperationException("Manta does not have support of buckets");
+        throw new OperationNotSupportedException("Not supported yet");
     }
 
     /**
-     * For make object public we need to change folder of object.
+     * Manta has to move directory to /:login/public to make directory public. It violates Daseign rules.
+     * Method throws {@link OperationNotSupportedException}.
      *
      * @param bucket Manta does not support buckets. This parameter is ignored.
      * @param object
@@ -377,11 +448,11 @@ public class Manta implements BlobStoreSupport {
      */
     @Override
     public void makePublic(@Nullable String bucket, @Nonnull String object) throws InternalException, CloudException {
-        throw new UnsupportedOperationException("");
+        throw new OperationNotSupportedException("Not supported yet");
     }
 
     /**
-     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * Manta does not support buckets. Method throws {@link OperationNotSupportedException}.
      *
      * @param fromBucket
      * @param objectName
@@ -392,19 +463,26 @@ public class Manta implements BlobStoreSupport {
     @Override
     public void move(@Nullable String fromBucket, @Nullable String objectName, @Nullable String toBucket) throws
             InternalException, CloudException {
-        throw new UnsupportedOperationException("Manta does not have support of buckets");
+        throw new OperationNotSupportedException("Manta does not have support of buckets");
     }
 
     /**
-     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * Recursively deletes directory with contents.
      *
-     * @param bucket Manta does not support buckets. This parameter is ignored.
+     * @param bucket path
      * @throws CloudException
      * @throws InternalException
      */
     @Override
     public void removeBucket(@Nonnull String bucket) throws CloudException, InternalException {
-        throw new UnsupportedOperationException();
+        String path = parseDirectoryName(bucket);
+        try {
+            mantaClient.deleteRecursive(path);
+        } catch (MantaCryptoException e) {
+            throw new CloudException(e);
+        } catch (IOException e) {
+            throw new CloudException(e);
+        }
     }
 
     /**
@@ -427,7 +505,7 @@ public class Manta implements BlobStoreSupport {
     }
 
     /**
-     * Manta does not support buckets. Method throws {@link UnsupportedOperationException}.
+     * Manta does not support directory linking. Method throws {@link OperationNotSupportedException}.
      *
      * @param oldName
      * @param newName
@@ -440,7 +518,7 @@ public class Manta implements BlobStoreSupport {
     @Override
     public String renameBucket(@Nonnull String oldName, @Nonnull String newName, boolean findFreeName) throws
             CloudException, InternalException {
-        throw new UnsupportedOperationException();
+        throw new OperationNotSupportedException("Not supported yet");
     }
 
     /**
@@ -480,7 +558,7 @@ public class Manta implements BlobStoreSupport {
     public Blob upload(@Nonnull File sourceFile, @Nullable String bucket, @Nonnull String objectName) throws
             CloudException, InternalException {
         try {
-            return processFileUpload(sourceFile, objectName);
+            return processFileUpload(sourceFile, bucket, objectName);
         } catch (IOException ex) {
             throw new CloudException(ex);
         } catch (MantaCryptoException ex) {
@@ -489,24 +567,24 @@ public class Manta implements BlobStoreSupport {
     }
 
     /**
-     * Method create directory and upload file to it
+     * Method creates directory and upload file to it
      *
      * @param sourceFile file that will be uploaded
+     * @param path path to file
      * @param objectName path to file in Manta Storage
      * @return representation of uploaded file
      * @throws IOException
      * @throws MantaCryptoException
      */
-    private Blob processFileUpload(@Nonnull File sourceFile, @Nonnull String objectName) throws IOException,
+    private Blob processFileUpload(@Nonnull File sourceFile, @Nonnull String path, @Nonnull String objectName) throws IOException,
             MantaCryptoException {
-        String dirName = parseDirectoryName(objectName);
-        mantaClient.putDirectory(dirName, null);
+        mantaClient.putDirectory(path, null);
 
-        MantaObject mantaObject = new MantaObject(objectName);
+        MantaObject mantaObject = new MantaObject(path + objectName);
         mantaObject.setDataInputStream(new FileInputStream(sourceFile));
         mantaClient.put(mantaObject);
 
-        return Blob.getInstance(regionId, "", dirName, objectName , new Date().getTime(),
+        return Blob.getInstance(regionId, "", path, objectName , new Date().getTime(),
                 new Storage<Byte>(sourceFile.length(), Storage.BYTE));
     }
 
@@ -564,8 +642,7 @@ public class Manta implements BlobStoreSupport {
         synchronized (fileTransfer) {
             fileTransfer.setPercentComplete(100);
             fileTransfer.setBytesToTransfer(0);
-            Long contentLength = mantaObject.getContentLength();
-            fileTransfer.setBytesTransferred(contentLength != null ? contentLength : -1L);
+            fileTransfer.setBytesTransferred(getContentLength(mantaObject));
             fileTransfer.completeWithResult(toFile);
         }
 
