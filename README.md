@@ -7,17 +7,6 @@ an implementation of the Dasein Cloud API for the Joyent Cloud and the SDC platf
 * [Get started with Dasein Cloud](https://github.com/greese/dasein-cloud)
 * [Get started with Dasein Cloud + Joyent](https://github.com/greese/dasein-cloud-joyent/wiki)
 
-Installation
--------------------
-
-### Maven
-
-You need [maven](https://maven.apache.org/) to build this library. After you installed maven run:
-
-    $ mvn package
-
-Then you can use dasein-cloud-joyent/target/dasein-cloud-joyent-{version}.jar as an implementation of Dasein Cloud.
-
 Configuration
 -------------------
 
@@ -45,7 +34,19 @@ Dasein properties (see Dasein Cloud Joyent [configuration](https://github.com/gr
     DSN_CLOUD_NAME=<DASEIN_CLOUD_NAME> (alias for "cloudName")
     DSN_CLOUD_PROVIDER=<DASEIN_CLOUD_PROVIDER> (alias for "providerName")
 
-All properties are REQUIRED.
+All properties are REQUIRED by tests. Without these properties you should skip maven tests.
+
+Installation
+-------------------
+
+### Maven
+
+You need [maven](https://maven.apache.org/) to build this library. After you installed maven run set properties defined
+in [Configuration](#configuration). Then run:
+
+    $ mvn clean install
+
+Then you can use dasein-cloud-joyent/target/dasein-cloud-joyent-{version}.jar as an implementation of Dasein Cloud.
 
 Usage
 -------------------
