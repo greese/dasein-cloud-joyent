@@ -86,8 +86,8 @@ You can set variables inside maven using maven-surfire-plugin:
               <DSN_PROVIDER_CLASS>org.dasein.cloud.joyent.SmartDataCenter</DSN_PROVIDER_CLASS>
               <DSN_ENDPOINT>https://us-west-1.api.joyentcloud.com</DSN_ENDPOINT>
               <DSN_REGION>us-west</DSN_REGION>
-              <DSN_API_SHARED></DSN_API_SHARED>
-              <DSN_API_SECRET></DSN_API_SECRET>
+              <DSN_API_SHARED>""</DSN_API_SHARED>
+              <DSN_API_SECRET>""</DSN_API_SECRET>
               <DSN_ACCOUNT>altoros2</DSN_ACCOUNT>
               <DSN_CLOUD_NAME>Joyent Cloud</DSN_CLOUD_NAME>
               <DSN_CLOUD_PROVIDER>Joyent</DSN_CLOUD_PROVIDER>
@@ -149,12 +149,13 @@ Unix:
 
     public class SimpleClientTest {
         private static final String FILE_PATH = "src/test/resources/Master-Yoda.jpg";
-        private static final String OBJECT_NAME = "/altoros2/stor/1/Master-Yoda.jpg";
+        private static final String OBJECT_NAME = "Master-Yoda.jpg";
+        private static final String OBJECT_PATH = "/altoros2/stor/1/";
 
         public static void main(String[] args) throws ClassNotFoundException, InstantiationException,
                 UnsupportedEncodingException, IllegalAccessException, CloudException, InternalException {
             BlobStoreSupport storage = new ProviderLoader().getConfiguredProvider().getStorageServices().getOnlineStorageSupport();
-            Blob uploaded = storage.upload(new File(FILE_PATH), null, OBJECT_NAME);
+            Blob uploaded = storage.upload(new File(FILE_PATH), OBJECT_PATH, OBJECT_NAME);
             System.out.print(uploaded);
         }
     }
