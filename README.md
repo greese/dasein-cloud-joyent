@@ -38,8 +38,8 @@ Manta configuration properties:
 
 Dasein properties (see Dasein Cloud Joyent [configuration](https://github.com/greese/dasein-cloud-joyent/wiki/Configuration)):
 
-    DSN_API_SHARED=<Redundant value required by DSN. Must not be empty>
-    DSN_API_SECRET=<Redundant value required by DSN. Must not be empty>
+    DSN_API_SHARED=<Redundant value required by DSN. Must not be null>
+    DSN_API_SECRET=<Redundant value required by DSN. Must not be null>
     DSN_ENDPOINT=<DASEIN_ROUTE_URL> (alias for "endpoint" provider context value)
     DSN_REGION=<DASEIN_REGION> (alias for "regionId")
     DSN_CLOUD_NAME=<DASEIN_CLOUD_NAME> (alias for "cloudName")
