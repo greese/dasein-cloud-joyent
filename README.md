@@ -42,7 +42,7 @@ Installation
 ### Maven
 
 You need [maven](https://maven.apache.org/) to build this library. After you installed maven run set properties defined
-in [Configuration](#configuration). Then run:
+in [Configuration](#configuration) or add '-DskipTests=true'. Then run:
 
     $ mvn clean install
 
@@ -100,39 +100,28 @@ You can set variables inside maven using maven-surfire-plugin:
       </configuration>
     </plugin>
 
-Or you can set environment variable:
+Or you can set system variables in Java using this snippet:
 
-Windows:
+    Properties props = new Properties();
+    InputStream inputStream = getClassLoader().getResourceAsStream("dsn.properties");
+    props.load(inputStream);
+    for (Map.Entry<Object, Object> entry : props.entrySet()) {
+        System.setProperty(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
+    }
 
-    setx DSN_PROVIDER_CLASS org.dasein.cloud.joyent.SmartDataCenter
-    setx DSN_ENDPOINT https://us-west-1.api.joyentcloud.com
-    setx DSN_REGION us-west
-    setx DSN_ACCOUNT altoros2
-    setx DSN_CLOUD_NAME Joyent Cloud
-    setx DSN_CLOUD_PROVIDER Joyent
-    setx DSN_CUSTOM_STORAGE_URL https://us-east.manta.joyent.com
-    setx DSN_CUSTOM_KEY_PATH src/test/resources/data/id_rsa
-    setx DSN_CUSTOM_KEY_FINGERPRINT 04:92:7b:23:bc:08:4f:d7:3b:5a:38:9e:4a:17:2e:df
-    setx DSN_CLOUD_PROVIDER Joyent
-    setx DSN_API_SHARED=
-    setx DSN_API_SECRET=
+dsn.properties:
 
-
-Unix:
-
-    export DSN_PROVIDER_CLASS="org.dasein.cloud.joyent.SmartDataCenter"
-    export DSN_ENDPOINT="https://us-west-1.api.joyentcloud.com"
-    export DSN_REGION="us-west"
-    export DSN_ACCOUNT="altoros2"
-    export DSN_CLOUD_NAME="Joyent Cloud"
-    export DSN_CLOUD_PROVIDER="Joyent"
-    export DSN_CUSTOM_STORAGE_URL="https://us-east.manta.joyent.com"
-    export DSN_CUSTOM_KEY_PATH="src/test/resources/data/id_rsa"
-    export DSN_CUSTOM_KEY_FINGERPRINT="04:92:7b:23:bc:08:4f:d7:3b:5a:38:9e:4a:17:2e:df"
-    export DSN_CLOUD_PROVIDER="Joyent"
-    export DSN_API_SHARED=""
-    export DSN_API_SECRET=""
-
+    DSN_PROVIDER_CLASS=org.dasein.cloud.joyent.SmartDataCenter
+    DSN_ENDPOINT=https://us-west-1.api.joyentcloud.com
+    DSN_REGION=us-west
+    DSN_ACCOUNT=altoros2
+    DSN_CLOUD_NAME=Joyent Cloud
+    DSN_CLOUD_PROVIDER=Joyent
+    DSN_CUSTOM_STORAGE_URL=https://us-east.manta.joyent.com
+    DSN_CUSTOM_KEY_PATH=src/test/resources/data/id_rsa
+    DSN_CUSTOM_KEY_FINGERPRINT=04:92:7b:23:bc:08:4f:d7:3b:5a:38:9e:4a:17:2e:df
+    DSN_API_SHARED=
+    DSN_API_SECRET=
 
 ### Upload sample
 
@@ -149,7 +138,7 @@ Unix:
 
 
     public class SimpleClientTest {
-        private static final String FILE_PATH = "src/test/resources/Master-Yoda.jpg";
+        private static final String FILE_PATH = "/path/to/you/file/Master-Yoda.jpg";
         private static final String OBJECT_NAME = "Master-Yoda.jpg";
         private static final String OBJECT_PATH = "/altoros2/stor/1/";
 
