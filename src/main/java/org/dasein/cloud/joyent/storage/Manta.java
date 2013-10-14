@@ -15,7 +15,6 @@ import org.dasein.cloud.storage.Blob;
 import org.dasein.cloud.storage.BlobStoreSupport;
 import org.dasein.cloud.storage.FileTransfer;
 import org.dasein.util.uom.storage.*;
-import org.dasein.util.uom.storage.Byte;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -180,21 +179,22 @@ public class Manta implements BlobStoreSupport {
     /**
      * {@link com.joyent.manta.client.MantaObject#isDirectory()} works only after listObjects(String path) method.
      *
-     * @param mantaObject
+     * @param mantaObject object with content type header
      * @return
      */
-    private boolean isDirectory(MantaObject mantaObject) {
+    private boolean isDirectory(@Nonnull MantaObject mantaObject) {
         return mantaObject.getHttpHeaders().getContentType().equals(MantaObject.DIRECTORY_HEADER);
     }
 
     /**
      * {@link com.joyent.manta.client.MantaObject#getContentLength()} works only after listObjects(String path) method.
+     * Returns Double for convenient usage with {@link Storage}.
      *
-     * @param mantaObject
+     * @param mantaObject object with content
      * @return
      */
-    private long getContentLength(MantaObject mantaObject) {
-        return mantaObject.getHttpHeaders().getContentLength();
+    private Double getContentLength(@Nonnull MantaObject mantaObject) {
+        return mantaObject.getHttpHeaders().getContentLength().doubleValue();
     }
 
     /**
@@ -215,7 +215,7 @@ public class Manta implements BlobStoreSupport {
         MantaObject mantaObject = loadMantaObjectMetadata(bucketName, objectName);
         String dirName = parseDirectoryName(mantaObject.getPath());
         return Blob.getInstance(regionId, "", dirName, objectName, new Date().getTime(),
-                new Storage<Byte>(getContentLength(mantaObject), Storage.BYTE));
+                new Storage<org.dasein.util.uom.storage.Byte>(getContentLength(mantaObject), Storage.BYTE));
     }
 
     /**
@@ -229,12 +229,12 @@ public class Manta implements BlobStoreSupport {
      */
     @Nullable
     @Override
-    public Storage<Byte> getObjectSize(@Nullable String bucketName, @Nullable String objectName)
+    public Storage<org.dasein.util.uom.storage.Byte> getObjectSize(@Nullable String bucketName, @Nullable String objectName)
             throws InternalException, CloudException {
-        Storage<Byte> storage = null;
+        Storage<org.dasein.util.uom.storage.Byte> storage = null;
         if (objectName != null) {
             MantaObject mantaObject = loadMantaObjectMetadata(bucketName, objectName);
-            storage = new Storage<Byte>(getContentLength(mantaObject), Storage.BYTE);
+            storage = new Storage<org.dasein.util.uom.storage.Byte>(getContentLength(mantaObject), Storage.BYTE);
         }
         return storage;
     }
@@ -284,8 +284,8 @@ public class Manta implements BlobStoreSupport {
      * @throws CloudException
      */
     @Override
-    public Storage<Byte> getMaxObjectSize() throws InternalException, CloudException {
-        return new Storage<Byte>(Long.MAX_VALUE, Storage.BYTE);
+    public Storage<org.dasein.util.uom.storage.Byte> getMaxObjectSize() throws InternalException, CloudException {
+        return new Storage<org.dasein.util.uom.storage.Byte>(Long.MAX_VALUE, Storage.BYTE);
     }
 
     /**
@@ -417,7 +417,7 @@ public class Manta implements BlobStoreSupport {
             } else {
                 String objectName = parseObjectName(mantaObject.getPath());
                 result.add(Blob.getInstance(regionId, "", dirName, objectName, new Date().getTime(),
-                        new Storage<Byte>(mantaObject.getContentLength(), Storage.BYTE)
+                        new Storage<org.dasein.util.uom.storage.Byte>(mantaObject.getContentLength(), Storage.BYTE)
                 ));
             }
         }
@@ -585,7 +585,7 @@ public class Manta implements BlobStoreSupport {
         mantaClient.put(mantaObject);
 
         return Blob.getInstance(regionId, "", path, objectName , new Date().getTime(),
-                new Storage<Byte>(sourceFile.length(), Storage.BYTE));
+                new Storage<org.dasein.util.uom.storage.Byte>(sourceFile.length(), Storage.BYTE));
     }
 
     private String parseDirectoryName(@Nonnull String objectName) {
@@ -642,7 +642,7 @@ public class Manta implements BlobStoreSupport {
         synchronized (fileTransfer) {
             fileTransfer.setPercentComplete(100);
             fileTransfer.setBytesToTransfer(0);
-            fileTransfer.setBytesTransferred(getContentLength(mantaObject));
+            fileTransfer.setBytesTransferred(getContentLength(mantaObject).longValue());
             fileTransfer.completeWithResult(toFile);
         }
 

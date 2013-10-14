@@ -9,6 +9,8 @@ import org.dasein.cloud.storage.BlobStoreSupport;
 import static org.junit.Assert.*;
 
 import org.dasein.cloud.storage.FileTransfer;
+import org.dasein.util.uom.storage.*;
+import org.dasein.util.uom.storage.Byte;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 
@@ -198,12 +200,14 @@ public class MantaStorageTest {
         assertNotNull(blob);
     }
 
-    // TODO: Test is ignored until Measured.convertTo will work correct
     @Ignore
     @Test
     public void testGetObjectSize() throws Exception {
         Blob blob = uploadTestFile();
-        // Measured.convertTo returns double. Test is disabled
-        assertTrue(blob.getSize().getQuantity().equals(storage.getObjectSize(MANTA_DIR_PATH, MANTA_FILE_NAME).getQuantity()));
+        Storage<Byte> size = blob.getSize();
+        Storage<Byte> storageObjectSize = storage.getObjectSize(MANTA_DIR_PATH, MANTA_FILE_NAME);
+        if (size != null && storageObjectSize != null) {
+            assertTrue(size.getQuantity().equals(storageObjectSize.getQuantity()));
+        }
     }
 }
