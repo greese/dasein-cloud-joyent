@@ -47,6 +47,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.conn.params.ConnRoutePNames;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.auth.BasicScheme;
@@ -728,7 +729,7 @@ public class JoyentMethod {
             post.addHeader("Accept", "application/json");
             post.addHeader("X-Api-Version", VERSION);
 
-//            post.setEntity(new InputStreamEntity(stream, -1L, ContentType.APPLICATION_OCTET_STREAM));
+            post.setEntity(new InputStreamEntity(stream, -1L, ContentType.APPLICATION_OCTET_STREAM));
             if( wire.isDebugEnabled() ) {
                 wire.debug(post.getRequestLine().toString());
                 for( Header header : post.getAllHeaders() ) {
@@ -984,13 +985,13 @@ public class JoyentMethod {
             put.addHeader("Accept", "application/json");
             put.addHeader("X-Auth-Token", authToken);
 
-//            try {
-//                //noinspection deprecation
-//                put.setEntity(new StringEntity(payload == null ? "" : payload, "application/json", "UTF-8"));
-//            }
-//            catch( UnsupportedEncodingException e ) {
-//                throw new InternalException(e);
-//            }
+            try {
+                //noinspection deprecation
+                put.setEntity(new StringEntity(payload == null ? "" : payload, "application/json", "UTF-8"));
+            }
+            catch( UnsupportedEncodingException e ) {
+                throw new InternalException(e);
+            }
 
             if( wire.isDebugEnabled() ) {
                 wire.debug(put.getRequestLine().toString());
@@ -1115,7 +1116,7 @@ public class JoyentMethod {
                 put.addHeader("ETag", md5Hash);
             }
 
-//            put.setEntity(new InputStreamEntity(stream, -1L, ContentType.APPLICATION_OCTET_STREAM));
+            put.setEntity(new InputStreamEntity(stream, -1L, ContentType.APPLICATION_OCTET_STREAM));
             if( wire.isDebugEnabled() ) {
                 wire.debug(put.getRequestLine().toString());
                 for( Header header : put.getAllHeaders() ) {
