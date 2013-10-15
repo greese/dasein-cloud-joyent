@@ -96,12 +96,23 @@ public class Manta implements BlobStoreSupport {
     public void clearBucket(@Nonnull String bucket) throws CloudException, InternalException {
         String directoryName = parseDirectoryName(bucket);
         try {
-            mantaClient.deleteRecursive(directoryName);
+            mantaClient.delete(directoryName);
             mantaClient.putDirectory(directoryName, null);
         } catch (MantaCryptoException e) {
             throw new CloudException(e);
         } catch (IOException e) {
-            throw new CloudException(e);
+            logger.debug("Directory is not empty. Delete recursively.", e);
+            // if bucket is not empty remove recursively
+            try {
+                mantaClient.deleteRecursive(directoryName);
+                mantaClient.putDirectory(directoryName, null);
+            } catch (MantaCryptoException ex) {
+                throw new CloudException(ex);
+            } catch (HttpResponseException ex) {
+                throw new CloudException(ex);
+            } catch (IOException ex) {
+                throw new CloudException(ex);
+            }
         }
     }
 
@@ -467,7 +478,7 @@ public class Manta implements BlobStoreSupport {
     }
 
     /**
-     * Recursively deletes directory with contents.
+     * Deletes directory with contents.
      *
      * @param bucket path
      * @throws CloudException
@@ -477,11 +488,21 @@ public class Manta implements BlobStoreSupport {
     public void removeBucket(@Nonnull String bucket) throws CloudException, InternalException {
         String path = parseDirectoryName(bucket);
         try {
-            mantaClient.deleteRecursive(path);
+            mantaClient.delete(path);
         } catch (MantaCryptoException e) {
             throw new CloudException(e);
         } catch (IOException e) {
-            throw new CloudException(e);
+            logger.debug("Directory is not empty. Delete recursively.", e);
+            // if bucket is not empty remove recursively
+            try {
+                mantaClient.deleteRecursive(path);
+            } catch (MantaCryptoException ex) {
+                throw new CloudException(ex);
+            } catch (HttpResponseException ex) {
+                throw new CloudException(ex);
+            } catch (IOException ex) {
+                throw new CloudException(ex);
+            }
         }
     }
 
