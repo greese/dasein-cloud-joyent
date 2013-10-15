@@ -200,7 +200,6 @@ public class MantaStorageTest {
         assertNotNull(blob);
     }
 
-    @Ignore
     @Test
     public void testGetObjectSize() throws Exception {
         Blob blob = uploadTestFile();

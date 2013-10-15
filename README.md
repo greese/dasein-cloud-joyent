@@ -22,8 +22,8 @@ Manta configuration properties:
     DSN_PROVIDER_CLASS=org.dasein.cloud.joyent.SmartDataCenter
     DSN_CUSTOM_STORAGE_URL=<MANTA_URL>
     DSN_ACCOUNT=<MANTA_USER>
-    DSN_CUSTOM_KEY_PATH=<MANTA_RSA_PUB_KEY>
-    DSN_CUSTOM_KEY_FINGERPRINT=<MANTA_RSA_FINGERPRINT>
+    DSN_CUSTOM_KEY_PATH=<RSA_PUB_KEY_PATH>
+    DSN_CUSTOM_KEY_FINGERPRINT=<MANTA_KEY_ID>
 
 Dasein properties (see Dasein Cloud Joyent [configuration](https://github.com/greese/dasein-cloud-joyent/wiki/Configuration)):
 
