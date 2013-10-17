@@ -26,7 +26,6 @@ public class MantaStorageTest {
     private static final String SRC_FILE_PATH = "src/test/resources/data/Master-Yoda.jpg";
     private static final String MANTA_DIR_PATH = "/altoros2/stor/1/";
     private static final String MANTA_FILE_NAME = "Master-Yoda.jpg";
-    private static final String MANTA_FILE_PATH = MANTA_DIR_PATH + MANTA_FILE_NAME;
 
     private static BlobStoreSupport storage;
 
@@ -72,7 +71,7 @@ public class MantaStorageTest {
         uploadTestFile();
         File toFile = File.createTempFile(String.valueOf(new Date().getTime()), "");
 
-        FileTransfer fileTransfer = storage.download(null, MANTA_FILE_PATH, toFile);
+        FileTransfer fileTransfer = storage.download(MANTA_DIR_PATH, MANTA_FILE_NAME, toFile);
         waitUntilFileDownloaded(fileTransfer);
 
         assertThatFileSuccessfullyDownloaded(fileTransfer);
@@ -83,14 +82,14 @@ public class MantaStorageTest {
     public void testFileRemove() throws Exception {
         uploadTestFile();
 
-        storage.removeObject(null, MANTA_FILE_PATH);
+        storage.removeObject(MANTA_DIR_PATH, MANTA_FILE_NAME);
     }
 
     @Test
     public void testFileRename() throws Exception {
         uploadTestFile();
 
-        storage.renameObject(null, MANTA_FILE_PATH, "/altoros2/stor/1/Master-Yoda-1.jpg");
+        storage.renameObject(MANTA_DIR_PATH, MANTA_FILE_NAME, "Master-Yoda-1.jpg");
     }
 
     @Test
