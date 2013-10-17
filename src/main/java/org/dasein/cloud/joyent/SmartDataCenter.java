@@ -69,9 +69,8 @@ public class SmartDataCenter extends AbstractCloud {
     
     public SmartDataCenter() { }
 
-    @Nullable
     @Override
-    public synchronized StorageServices getStorageServices() {
+    public @Nonnull synchronized StorageServices getStorageServices() {
         return new MantaStorageServices(this);
     }
 
