@@ -4,6 +4,7 @@ import org.dasein.cloud.CloudException;
 import org.dasein.cloud.CloudProvider;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.examples.ProviderLoader;
+import org.dasein.cloud.joyent.storage.util.MantaStorageTestUtils;
 import org.dasein.cloud.storage.Blob;
 import org.dasein.cloud.storage.BlobStoreSupport;
 import static org.junit.Assert.*;
@@ -13,21 +14,44 @@ import org.dasein.util.uom.storage.*;
 import org.dasein.util.uom.storage.Byte;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import javax.annotation.Nonnull;
 import java.io.File;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 
 /**
+ * Sophisticated tests with various valid data parameters.
+ *
  * @author ilya.drabenia
  * @author anton.karavaev
  */
+@RunWith(Parameterized.class)
 public class MantaStorageTest {
     private static final String SRC_FILE_PATH = "src/test/resources/data/Master-Yoda.jpg";
-    private static final String MANTA_DIR_PATH = "/altoros2/stor/1/";
-    private static final String MANTA_FILE_NAME = "Master-Yoda.jpg";
 
     private static BlobStoreSupport storage;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> validData() {
+        return Arrays.asList(new Object[][]{
+                { "/altoros2/stor/testAK/2/", "0-Master-Yoda.jpg" },
+                { "/altoros2/stor/testAK/2", "1-Master-Yoda.jpg" },
+                { "/altoros2/stor/testAK/2", "/altoros2/stor/testAK/2/3-Master-Yoda.jpg" },
+                { "/altoros2/stor/testAK/2/", "/altoros2/stor/testAK/2/4-Master-Yoda.jpg" },
+                { "/altoros2/stor/testAK/2/    ", "/altoros2/stor/testAK/2/5-Master-Yoda.jpg" },
+
+        });
+    }
+
+    @Parameterized.Parameter
+    public String dir;
+
+    @Parameterized.Parameter(value = 1)
+    public String fileName;
 
     @BeforeClass
     public static void prepareMantaStore() throws Exception {
@@ -35,14 +59,32 @@ public class MantaStorageTest {
         storage = provider.getStorageServices().getOnlineStorageSupport();
     }
 
-    @AfterClass
-    public static void tearDown() throws Exception {
-        storage.removeBucket(MANTA_DIR_PATH);
+    @After
+    public void tearDown() throws Exception {
+        if (storage.exists(dir)) {
+            storage.removeBucket(dir);
+        }
     }
 
-    private Blob uploadTestFile() throws Exception {
-        File sourceFile = new File(SRC_FILE_PATH);
-        return storage.upload(sourceFile, MANTA_DIR_PATH, MANTA_FILE_NAME);
+    @Test
+    public void testFileUpload() throws Exception {
+        Blob result = MantaStorageTestUtils.uploadTestFile(SRC_FILE_PATH, storage, dir, fileName);
+
+        assertNotNull(result);
+        assertTrue(storage.exists(dir));
+        storage.getObject(dir, fileName);
+    }
+
+    @Test
+    public void testFileDownload() throws Exception {
+        MantaStorageTestUtils.uploadTestFile(SRC_FILE_PATH, storage, dir, fileName);
+        File toFile = File.createTempFile(String.valueOf(new Date().getTime()), "");
+
+        FileTransfer fileTransfer = storage.download(dir, fileName, toFile);
+        waitUntilFileDownloaded(fileTransfer);
+
+        assertThatFileSuccessfullyDownloaded(fileTransfer);
+        assertEquals(toFile.length(), 892907);
     }
 
     private void assertThatFileSuccessfullyDownloaded(FileTransfer fileTransfer) {
@@ -60,69 +102,19 @@ public class MantaStorageTest {
     }
 
     @Test
-    public void testFileUpload() throws Exception {
-        Blob result = uploadTestFile();
-
-        assertNotNull(result);
-    }
-
-    @Test
-    public void testFileDownload() throws Exception {
-        uploadTestFile();
-        File toFile = File.createTempFile(String.valueOf(new Date().getTime()), "");
-
-        FileTransfer fileTransfer = storage.download(MANTA_DIR_PATH, MANTA_FILE_NAME, toFile);
-        waitUntilFileDownloaded(fileTransfer);
-
-        assertThatFileSuccessfullyDownloaded(fileTransfer);
-        assertEquals(toFile.length(), 892907);
-    }
-
-    @Test
     public void testFileRemove() throws Exception {
-        uploadTestFile();
+        MantaStorageTestUtils.uploadTestFile(SRC_FILE_PATH, storage, dir, fileName);
 
-        storage.removeObject(MANTA_DIR_PATH, MANTA_FILE_NAME);
+        storage.removeObject(dir, fileName);
     }
 
     @Test
     public void testFileRename() throws Exception {
-        uploadTestFile();
+        MantaStorageTestUtils.uploadTestFile(SRC_FILE_PATH, storage, dir, fileName);
 
-        storage.renameObject(MANTA_DIR_PATH, MANTA_FILE_NAME, "Master-Yoda-1.jpg");
+        storage.renameObject(dir, fileName, "Master-Yoda-1.jpg");
     }
 
-    @Test
-    public void testIsPublicForPublicFile() throws Exception {
-        final String PUBLIC_FILE_PATH = "/altoros2/public/1/";
-
-        boolean isPublic = storage.isPublic(PUBLIC_FILE_PATH, MANTA_FILE_NAME);
-
-        assertTrue("Public files must be stored in /{login}/public folder", isPublic);
-    }
-
-    @Test
-    public void testIsPublicForNotPublicFiles() throws Exception {
-        final String PRIVATE_FILE_PATH = "/altoros2/stor/1/Master-Yoda.jpg";
-
-        boolean isPublic = storage.isPublic(null, PRIVATE_FILE_PATH);
-
-        assertFalse(isPublic);
-    }
-
-    @Test
-    public void testGetMaxObjectSize() throws Exception {
-        double size = storage.getMaxObjectSize().doubleValue();
-
-        assertTrue("Files in Manta has unlimited size", size > 1000000);
-    }
-
-    @Test
-    public void testIsSubscribed() throws Exception {
-        boolean isSubscribed = storage.isSubscribed();
-
-        assertTrue("For make tests on real cloud client must be subscribed", isSubscribed);
-    }
 
     /**
      * Note that current Manta Java API does not support recursive directory creation (i.e. mmkdir -p command in Node.js SDK)
@@ -131,79 +123,63 @@ public class MantaStorageTest {
      */
     @Test
     public void testDirectoryCreate() throws Exception {
-        Blob bucket = createBucket(MANTA_DIR_PATH);
+        Blob bucket = MantaStorageTestUtils.createBucket(storage, dir);
 
         assertNotNull(bucket);
         assertNull("Manta directory must not have an object name", bucket.getObjectName());
         assertNotNull("Bucket name must be presented for Manta directories", bucket.getBucketName());
-        assertEquals(bucket.getBucketName(), MANTA_DIR_PATH);
+        assertEquals(bucket.getBucketName(), dir);
         assertTrue("Manta directory must be a container", bucket.isContainer());
     }
 
     @Test
     public void testDirectoryList() throws Exception {
-        createBucket(MANTA_DIR_PATH);
-        createBucket(MANTA_DIR_PATH + "foo/");
-        uploadTestFile();
-        Iterable<Blob> blobs = storage.list(MANTA_DIR_PATH);
+        MantaStorageTestUtils.createBucket(storage, dir);
+        MantaStorageTestUtils.uploadTestFile(SRC_FILE_PATH, storage, dir, fileName);
+        Iterable<Blob> blobs = storage.list(dir);
 
         assertTrue(blobs.iterator().hasNext());
     }
 
     @Test
     public void testDirectoryClear() throws Exception {
-        Blob parent = createBucket(MANTA_DIR_PATH);
+        Blob parent = MantaStorageTestUtils.createBucket(storage, dir);
         storage.clearBucket(parent.getBucketName());
         Iterable<Blob> blobs = storage.list(parent.getBucketName());
 
         assertFalse(blobs.iterator().hasNext());
     }
 
-    @Test
-    public void testDirectoryExists() throws Exception {
-        createBucket(MANTA_DIR_PATH);
-
-        assertTrue(storage.exists(MANTA_DIR_PATH));
-    }
-
-    @Nonnull
-    private Blob createBucket(@Nonnull String name) throws InternalException, CloudException {
-        return storage.createBucket(name, false);
-    }
-
-    @Rule
-    public ExpectedException expected = ExpectedException.none();
-
     @Test(expected = CloudException.class)
     public void testDirectoryRemove() throws Exception {
-        String path = MANTA_DIR_PATH + "2/";
-        createBucket(MANTA_DIR_PATH);
-        createBucket(path);
+        String path = dir + "2/";
+        MantaStorageTestUtils.createBucket(storage, dir);
+        MantaStorageTestUtils.createBucket(storage, path);
         storage.removeBucket(path);
         storage.getBucket(path);
     }
 
     @Test
     public void testGetBucket() throws Exception {
-        createBucket(MANTA_DIR_PATH);
-        Blob bucket = storage.getBucket(MANTA_DIR_PATH);
+        MantaStorageTestUtils.createBucket(storage, dir);
+        Blob bucket = storage.getBucket(dir);
 
         assertNotNull(bucket);
     }
 
     @Test
     public void testGetObject() throws Exception {
-        uploadTestFile();
-        Blob blob = storage.getObject(MANTA_DIR_PATH, MANTA_FILE_NAME);
+        MantaStorageTestUtils.uploadTestFile(SRC_FILE_PATH, storage, dir, fileName);
+        Blob blob = storage.getObject(dir, fileName);
 
         assertNotNull(blob);
     }
 
     @Test
     public void testGetObjectSize() throws Exception {
-        Blob blob = uploadTestFile();
+        Blob blob = MantaStorageTestUtils.uploadTestFile(SRC_FILE_PATH, storage, dir, fileName);
         Storage<Byte> size = blob.getSize();
-        Storage<Byte> storageObjectSize = storage.getObjectSize(MANTA_DIR_PATH, MANTA_FILE_NAME);
+        Storage<Byte> storageObjectSize = storage.getObjectSize(dir, fileName);
         if (size != null && storageObjectSize != null) {
             assertTrue(size.getQuantity().equals(storageObjectSize.getQuantity()));
         }
