@@ -28,6 +28,9 @@ import java.util.*;
  * @author anton.karavaev
  */
 public class Manta implements BlobStoreSupport {
+    public static final String CUSTOM_PROP_STORAGE_URL = "STORAGE_URL";
+    public static final String CUSTOM_PROP_KEY_PATH = "KEY_PATH";
+    public static final String CUSTOM_PROP_KEY_FINGERPRINT = "KEY_FINGERPRINT";
     private static final Logger logger = SmartDataCenter.getLogger(MantaStorageServices.class, "std");
 
     private final CloudProvider provider;
@@ -44,9 +47,9 @@ public class Manta implements BlobStoreSupport {
         ProviderContext context = provider.getContext();
 
         final String LOGIN = context.getAccountNumber();
-        final String URL = (String) context.getCustomProperties().get("STORAGE_URL");
-        final String KEY_PATH = (String) context.getCustomProperties().get("KEY_PATH");
-        final String KEY_FINGERPRINT = (String) context.getCustomProperties().get("KEY_FINGERPRINT");
+        final String URL = (String) context.getCustomProperties().get(CUSTOM_PROP_STORAGE_URL);
+        final String KEY_PATH = (String) context.getCustomProperties().get(CUSTOM_PROP_KEY_PATH);
+        final String KEY_FINGERPRINT = (String) context.getCustomProperties().get(CUSTOM_PROP_KEY_FINGERPRINT);
 
         return MantaClient.newInstance(URL, LOGIN, KEY_PATH, KEY_FINGERPRINT);
     }
@@ -626,13 +629,16 @@ public class Manta implements BlobStoreSupport {
     }
 
     /**
-     * Makes path a Manta directory path.
+     * Makes path a Manta private storage directory path.
      *
      * @param path directory path
      * @return Manta directory path
      */
     private @Nonnull String coerceToDirectory(@Nonnull String path) {
         String pathToDir = path.trim();
+        if (!pathToDir.startsWith(provider.getContext().getAccountNumber() + "/stor/")) {
+            pathToDir = provider.getContext().getAccountNumber() + "/stor/" + pathToDir;
+        }
         if (!pathToDir.endsWith("/")) {
             pathToDir += "/";
         }

@@ -10,6 +10,7 @@ import org.dasein.cloud.storage.BlobStoreSupport;
 import static org.junit.Assert.*;
 
 import org.dasein.cloud.storage.FileTransfer;
+import org.dasein.cloud.test.DaseinTestManager;
 import org.dasein.util.uom.storage.*;
 import org.dasein.util.uom.storage.Byte;
 import org.junit.*;
@@ -38,11 +39,11 @@ public class MantaStorageTest {
     @Parameterized.Parameters
     public static Collection<Object[]> validData() {
         return Arrays.asList(new Object[][]{
-                { "/altoros2/stor/testAK/2/", "0-Master-Yoda.jpg" },
-                { "/altoros2/stor/testAK/2", "1-Master-Yoda.jpg" },
-                { "/altoros2/stor/testAK/2", "/altoros2/stor/testAK/2/3-Master-Yoda.jpg" },
-                { "/altoros2/stor/testAK/2/", "/altoros2/stor/testAK/2/4-Master-Yoda.jpg" },
-                { "/altoros2/stor/testAK/2/    ", "/altoros2/stor/testAK/2/5-Master-Yoda.jpg" },
+                { "testAK/2/", "0-Master-Yoda.jpg" },
+                { "testAK/2", "1-Master-Yoda.jpg" },
+                { "testAK/2", "testAK/2/3-Master-Yoda.jpg" },
+                { "testAK/2/", "testAK/2/4-Master-Yoda.jpg" },
+                { "testAK/2/    ", "testAK/2/5-Master-Yoda.jpg" },
 
         });
     }
@@ -55,7 +56,7 @@ public class MantaStorageTest {
 
     @BeforeClass
     public static void prepareMantaStore() throws Exception {
-        CloudProvider provider = new ProviderLoader().getConfiguredProvider();
+        CloudProvider provider = DaseinTestManager.constructProvider();
         storage = provider.getStorageServices().getOnlineStorageSupport();
     }
 
