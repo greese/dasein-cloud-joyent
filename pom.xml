@@ -194,9 +194,9 @@
 
               <customProperties>
                 {
-                  "STORAGE_URL" : "https://us-east.manta.joyent.com",
-                  "KEY_PATH" : "src/test/resources/data/id_rsa",
-                  "KEY_FINGERPRINT" : "04:92:7b:23:bc:08:4f:d7:3b:5a:38:9e:4a:17:2e:df"
+                  "STORAGE_URL" : "${storageUrl}",
+                  "KEY_PATH" : "${keyPath}",
+                  "KEY_FINGERPRINT" : "${keyFingerprint}"
                 }
               </customProperties>
             </systemPropertyVariables>
@@ -231,6 +231,9 @@
       <properties>
         <providerClass>org.dasein.cloud.joyent.SmartDataCenter</providerClass>
         <endpoint>https://us-west-1.api.joyentcloud.com</endpoint>
+        <storageUrl>https://us-east.manta.joyent.com</storageUrl>
+        <keyPath>src/test/resources/data/id_rsa</keyPath>
+        <keyFingerprint>04:92:7b:23:bc:08:4f:d7:3b:5a:38:9e:4a:17:2e:df</keyFingerprint>
         <accountNumber>altoros2</accountNumber>
         <cloudName>Joyent Cloud</cloudName>
         <providerName>Joyent</providerName>
