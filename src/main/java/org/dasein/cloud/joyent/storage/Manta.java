@@ -172,8 +172,6 @@ public class Manta implements BlobStoreSupport {
                 } else {
                     throw new CloudException(e);
                 }
-            } else {
-                throw new CloudException(e);
             }
         } catch (IOException e) {
             throw new CloudException(e);

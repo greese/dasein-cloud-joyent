@@ -144,20 +144,19 @@ public class MantaStorageTest {
 
     @Test
     public void testDirectoryClear() throws Exception {
-        Blob parent = MantaStorageTestUtils.createBucket(storage, dir);
-        storage.clearBucket(parent.getBucketName());
-        Iterable<Blob> blobs = storage.list(parent.getBucketName());
+        String path = MantaStorageTestUtils.createBucket(storage, dir).getBucketName();
+        storage.clearBucket(path);
 
-        assertFalse(blobs.iterator().hasNext());
+        assertNull(storage.getBucket(path));
     }
 
-    @Test(expected = CloudException.class)
+    @Test
     public void testDirectoryRemove() throws Exception {
         String path = dir + "2/";
         MantaStorageTestUtils.createBucket(storage, dir);
         MantaStorageTestUtils.createBucket(storage, path);
         storage.removeBucket(path);
-        storage.getBucket(path);
+        assertNull(storage.getBucket(path));
     }
 
     @Test

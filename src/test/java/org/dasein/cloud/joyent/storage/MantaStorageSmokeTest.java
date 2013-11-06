@@ -7,6 +7,7 @@ import org.dasein.cloud.joyent.storage.util.MantaStorageTestUtils;
 import org.dasein.cloud.storage.Blob;
 import org.dasein.cloud.storage.BlobStoreSupport;
 import org.dasein.cloud.storage.FileTransfer;
+import org.dasein.cloud.test.DaseinTestManager;
 import org.dasein.util.uom.storage.Byte;
 import org.dasein.util.uom.storage.Storage;
 import org.junit.AfterClass;
@@ -26,14 +27,14 @@ import static org.junit.Assert.*;
  */
 public class MantaStorageSmokeTest {
     private static final String SRC_FILE_PATH = "src/test/resources/data/Master-Yoda.jpg";
-    private static final String MANTA_DIR_PATH = "/altoros2/stor/smokeAK/";
-    private static final String MANTA_FILE_NAME = "/altoros2/stor/smokeAK/Master-Yoda.jpg";
+    private static final String MANTA_DIR_PATH = "smokeAK/";
+    private static final String MANTA_FILE_NAME = "smokeAK/Master-Yoda.jpg";
 
     private static BlobStoreSupport storage;
 
     @BeforeClass
     public static void prepareMantaStore() throws Exception {
-        CloudProvider provider = new ProviderLoader().getConfiguredProvider();
+        CloudProvider provider = DaseinTestManager.constructProvider();
         storage = provider.getStorageServices().getOnlineStorageSupport();
     }
 
@@ -149,11 +150,10 @@ public class MantaStorageSmokeTest {
 
     @Test
     public void testDirectoryClear() throws Exception {
-        Blob parent = MantaStorageTestUtils.createBucket(storage, MANTA_DIR_PATH);
-        storage.clearBucket(parent.getBucketName());
-        Iterable<Blob> blobs = storage.list(parent.getBucketName());
+        String path = MantaStorageTestUtils.createBucket(storage, MANTA_DIR_PATH).getBucketName();
+        storage.clearBucket(path);
 
-        assertFalse(blobs.iterator().hasNext());
+        assertNull(storage.getBucket(path));
     }
 
     @Test
@@ -163,14 +163,13 @@ public class MantaStorageSmokeTest {
         assertTrue(storage.exists(MANTA_DIR_PATH));
     }
 
-    @Test(expected = CloudException.class)
+    @Test
     public void testDirectoryRemove() throws Exception {
         String path = MANTA_DIR_PATH + "2/";
         MantaStorageTestUtils.createBucket(storage, MANTA_DIR_PATH);
         MantaStorageTestUtils.createBucket(storage, path);
         storage.removeBucket(path);
-        storage.getBucket(path);
-        fail("Directory " + path + " does not exist.");
+        assertNull(storage.getBucket(path));
     }
 
     @Test
