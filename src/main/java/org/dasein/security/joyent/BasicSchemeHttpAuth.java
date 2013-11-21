@@ -14,20 +14,19 @@ import java.io.UnsupportedEncodingException;
 
 public class BasicSchemeHttpAuth implements JoyentHttpAuth {
 
-    public BasicSchemeHttpAuth(SmartDataCenter provider) {
-        this.provider = provider;
+    private ProviderContext providerContext;
+
+    public BasicSchemeHttpAuth(ProviderContext providerContext) {
+        this.providerContext = providerContext;
     }
 
-    private SmartDataCenter provider;
-
     public void addPreemptiveAuth(@Nonnull HttpRequest request) throws CloudException, InternalException {
-        ProviderContext ctx = provider.getContext();
-        if( ctx == null ) {
+        if( providerContext == null ) {
             throw new CloudException("No context was defined for this request");
         }
         try {
-            String username = new String(ctx.getAccessPublic(), "utf-8");
-            String password = new String(ctx.getAccessPrivate(), "utf-8");
+            String username = new String(providerContext.getAccessPublic(), "utf-8");
+            String password = new String(providerContext.getAccessPrivate(), "utf-8");
             UsernamePasswordCredentials creds = new UsernamePasswordCredentials(username, password);
             request.addHeader(new BasicScheme().authenticate(creds, request));
         } catch (UnsupportedEncodingException e) {

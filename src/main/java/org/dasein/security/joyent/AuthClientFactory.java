@@ -24,15 +24,15 @@ import java.util.Properties;
 
 public class AuthClientFactory implements JoyentClientFactory {
 
-    private SmartDataCenter provider;
+    private ProviderContext providerContext;
 
-    public AuthClientFactory(SmartDataCenter provider) {
-        this.provider = provider;
+    public AuthClientFactory(ProviderContext providerContext) {
+        this.providerContext = providerContext;
     }
 
     @Override
     public @Nonnull HttpClient getClient(String endpoint) throws CloudException, InternalException {
-        ProviderContext ctx = provider.getContext();
+        ProviderContext ctx = providerContext;
 
         if( ctx == null ) {
             throw new CloudException("No context was defined for this request");
