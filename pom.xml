@@ -38,18 +38,21 @@
   </parent>
           
   <dependencies>
-      <!-- Compile -->
+    <!-- Compile -->
     <dependency>
-        <groupId>org.dasein</groupId>
-        <artifactId>dasein-cloud-core</artifactId>
-        <version>2013.07.0</version>
-        <scope>compile</scope>
-        <optional>false</optional>
+      <groupId>com.joyent.manta</groupId>
+      <artifactId>java-manta</artifactId>
+      <version>1.4.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava-jdk5</artifactId>
+      <version>13.0</version>
     </dependency>
     <dependency>
         <groupId>org.dasein</groupId>
-        <artifactId>dasein-util</artifactId>
-        <version>2013.02</version>
+        <artifactId>dasein-cloud-core</artifactId>
+        <version>2013.07.2</version>
         <scope>compile</scope>
         <optional>false</optional>
     </dependency>
@@ -79,11 +82,17 @@
           <version>2013.07.1</version>
           <scope>test</scope>
           <optional>false</optional>
+          <exclusions>
+              <exclusion>
+                  <groupId>junit</groupId>
+                  <artifactId>junit</artifactId>
+              </exclusion>
+          </exclusions>
       </dependency>
       <dependency>
           <groupId>junit</groupId>
           <artifactId>junit</artifactId>
-          <version>4.8.2</version>
+          <version>4.11</version>
           <scope>test</scope>
       </dependency>
   </dependencies>
@@ -171,51 +180,29 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.6</version>
         <configuration>
-            <systemProperties>
-                <property>
-                    <name>providerClass</name>
-                    <value>${providerClass}</value>
-                </property>
-                <property>
-                    <name>endpoint</name>
-                    <value>${endpoint}</value>
-                </property>
-                <property>
-                    <name>accountNumber</name>
-                    <value>${accountNumber}</value>
-                </property>
-                <property>
-                    <name>accessPublic</name>
-                    <value>${apiSharedKey}</value>
-                </property>
-                <property>
-                    <name>accessPrivate</name>
-                    <value>${apiSecretKey}</value>
-                </property>
-                <property>
-                    <name>apiSharedKey</name>
-                    <value>${apiSharedKey}</value>
-                </property>
-                <property>
-                    <name>apiSecretKey</name>
-                    <value>${apiSecretKey}</value>
-                </property>
-                <property>
-                    <name>cloudName</name>
-                    <value>${cloudName}</value>
-                </property>
-                <property>
-                    <name>providerName</name>
-                    <value>${providerName}</value>
-                </property>
-                <property>
-                    <name>regionId</name>
-                    <value>${regionId}</value>
-                </property>
-            </systemProperties> 
-          <excludes>
-            <exclude>**/TestSuite.java</exclude>
-          </excludes>
+            <systemPropertyVariables>
+              <providerClass>${providerClass}</providerClass>
+              <endpoint>${endpoint}</endpoint>
+              <accountNumber>${accountNumber}</accountNumber>
+              <accessPublic>${apiSharedKey}</accessPublic>
+              <accessPrivate>${apiSecretKey}</accessPrivate>
+              <apiSharedKey>${apiSharedKey}</apiSharedKey>
+              <apiSecretKey>${apiSecretKey}</apiSecretKey>
+              <cloudName>${cloudName}</cloudName>
+              <providerName>${providerName}</providerName>
+              <regionId>${regionId}</regionId>
+
+              <customProperties>
+                {
+                  "STORAGE_URL" : "${storageUrl}",
+                  "KEY_PATH" : "${keyPath}",
+                  "KEY_FINGERPRINT" : "${keyFingerprint}"
+                }
+              </customProperties>
+            </systemPropertyVariables>
+          <includes>
+            <include>**/TestSuite.java</include>
+          </includes>
         </configuration>
       </plugin> 
       <plugin>
@@ -234,7 +221,27 @@
       </plugin>           
     </plugins>
   </build>
-  
+
+  <profiles>
+    <profile>
+      <id>default</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <properties>
+        <providerClass>org.dasein.cloud.joyent.SmartDataCenter</providerClass>
+        <endpoint>https://us-west-1.api.joyentcloud.com</endpoint>
+        <storageUrl>https://us-east.manta.joyent.com</storageUrl>
+        <keyPath>src/test/resources/data/id_rsa</keyPath>
+        <keyFingerprint></keyFingerprint>
+        <accountNumber>altoros2</accountNumber>
+        <cloudName>Joyent Cloud</cloudName>
+        <providerName>Joyent</providerName>
+        <regionId>us-west-1</regionId>
+      </properties>
+    </profile>
+  </profiles>
+
   <distributionManagement>
     <repository>
         <id>sonatype-nexus-staging</id>
