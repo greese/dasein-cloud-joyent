@@ -1,28 +1,25 @@
 package org.dasein.cloud.joyent.storage;
 
-import org.dasein.cloud.CloudException;
 import org.dasein.cloud.CloudProvider;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.examples.ProviderLoader;
 import org.dasein.cloud.joyent.storage.util.MantaStorageTestUtils;
 import org.dasein.cloud.storage.Blob;
 import org.dasein.cloud.storage.BlobStoreSupport;
-import static org.junit.Assert.*;
-
 import org.dasein.cloud.storage.FileTransfer;
 import org.dasein.cloud.test.DaseinTestManager;
-import org.dasein.util.uom.storage.*;
 import org.dasein.util.uom.storage.Byte;
-import org.junit.*;
-import org.junit.rules.ExpectedException;
+import org.dasein.util.uom.storage.Storage;
+import org.junit.After;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import javax.annotation.Nonnull;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+
+import static org.junit.Assert.*;
 
 /**
  * Sophisticated tests with various valid data parameters.
@@ -32,18 +29,18 @@ import java.util.Date;
  */
 @RunWith(Parameterized.class)
 public class MantaStorageTest {
-    private static final String SRC_FILE_PATH = "src/test/resources/data/Master-Yoda.jpg";
+    private static final String SRC_FILE_PATH = "src/test/resources/data/master-yoda.txt";
 
     private static BlobStoreSupport storage;
 
     @Parameterized.Parameters
     public static Collection<Object[]> validData() {
         return Arrays.asList(new Object[][]{
-                { "testAK/2/", "0-Master-Yoda.jpg" },
-                { "testAK/2", "1-Master-Yoda.jpg" },
-                { "testAK/2", "testAK/2/3-Master-Yoda.jpg" },
-                { "testAK/2/", "testAK/2/4-Master-Yoda.jpg" },
-                { "testAK/2/    ", "testAK/2/5-Master-Yoda.jpg" },
+                {"testAK/2/", "0-master-yoda.txt"},
+                {"testAK/2", "1-master-yoda.txt"},
+                {"testAK/2", "testAK/2/3-master-yoda.txt"},
+                {"testAK/2/", "testAK/2/4-master-yoda.txt"},
+                {"testAK/2/    ", "testAK/2/5-master-yoda.txt"},
 
         });
     }
@@ -85,7 +82,7 @@ public class MantaStorageTest {
         waitUntilFileDownloaded(fileTransfer);
 
         assertThatFileSuccessfullyDownloaded(fileTransfer);
-        assertEquals(toFile.length(), 892907);
+        assertEquals(toFile.length(), 16);
     }
 
     private void assertThatFileSuccessfullyDownloaded(FileTransfer fileTransfer) {

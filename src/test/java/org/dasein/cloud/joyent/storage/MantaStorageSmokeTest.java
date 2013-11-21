@@ -26,9 +26,9 @@ import static org.junit.Assert.*;
  * @author anton.karavaev
  */
 public class MantaStorageSmokeTest {
-    private static final String SRC_FILE_PATH = "src/test/resources/data/Master-Yoda.jpg";
+    private static final String SRC_FILE_PATH = "src/test/resources/data/master-yoda.txt";
     private static final String MANTA_DIR_PATH = "smokeAK/";
-    private static final String MANTA_FILE_NAME = "smokeAK/Master-Yoda.jpg";
+    private static final String MANTA_FILE_NAME = "smokeAK/master-yoda.txt";
 
     private static BlobStoreSupport storage;
 
@@ -59,7 +59,7 @@ public class MantaStorageSmokeTest {
         waitUntilFileDownloaded(fileTransfer);
 
         assertThatFileSuccessfullyDownloaded(fileTransfer);
-        assertEquals(toFile.length(), 892907);
+        assertEquals(toFile.length(), 16);
     }
 
     private void assertThatFileSuccessfullyDownloaded(FileTransfer fileTransfer) {
@@ -101,7 +101,7 @@ public class MantaStorageSmokeTest {
 
     @Test
     public void testIsPublicForNotPublicFiles() throws Exception {
-        final String PRIVATE_FILE_PATH = "/altoros2/stor/1/Master-Yoda.jpg";
+        final String PRIVATE_FILE_PATH = "/altoros2/stor/1/master-yoda.txt";
 
         boolean isPublic = storage.isPublic(null, PRIVATE_FILE_PATH);
 
