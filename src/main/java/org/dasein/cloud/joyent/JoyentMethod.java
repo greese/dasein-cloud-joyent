@@ -51,7 +51,7 @@ public class JoyentMethod {
     static private final Logger logger = SmartDataCenter.getLogger(JoyentMethod.class, "std");
     static private final Logger wire   = SmartDataCenter.getLogger(JoyentMethod.class, "wire");
 
-    static public final String VERSION = "~6.5";
+    static public final String VERSION = "~7.1";
     
     private JoyentClientFactory clientFactory;
     private JoyentHttpAuth httpAuth;
