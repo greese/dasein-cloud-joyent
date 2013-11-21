@@ -7,35 +7,6 @@ an implementation of the Dasein Cloud API for the Joyent Cloud and the SDC platf
 * [Get started with Dasein Cloud](https://github.com/greese/dasein-cloud)
 * [Get started with Dasein Cloud + Joyent](https://github.com/greese/dasein-cloud-joyent/wiki)
 
-Configuration
--------------------
-
-To connect to Joynet Manta Sevice you can use ProviderLoader class.
-
-### Provider loader
-
-This class creates ProviderContext object with all necessary data. You have to specify the following system properties to
-pass data into ProviderContext object.
-
-Manta configuration properties:
-
-    DSN_PROVIDER_CLASS=org.dasein.cloud.joyent.SmartDataCenter
-    DSN_CUSTOM_STORAGE_URL=<MANTA_URL>
-    DSN_ACCOUNT=<MANTA_USER>
-    DSN_CUSTOM_KEY_PATH=<RSA_PUB_KEY_PATH>
-    DSN_CUSTOM_KEY_FINGERPRINT=<MANTA_KEY_ID>
-
-Dasein properties (see Dasein Cloud Joyent [configuration](https://github.com/greese/dasein-cloud-joyent/wiki/Configuration)):
-
-    DSN_API_SHARED=<Redundant value required by DSN. Must not be null>
-    DSN_API_SECRET=<Redundant value required by DSN. Must not be null>
-    DSN_ENDPOINT=<DASEIN_ROUTE_URL> (alias for "endpoint" provider context value)
-    DSN_REGION=<DASEIN_REGION> (alias for "regionId")
-    DSN_CLOUD_NAME=<DASEIN_CLOUD_NAME> (alias for "cloudName")
-    DSN_CLOUD_PROVIDER=<DASEIN_CLOUD_PROVIDER> (alias for "providerName")
-
-All properties are REQUIRED by tests. Without these properties you should skip maven tests.
-
 Installation
 -------------------
 
@@ -60,7 +31,7 @@ Here is some basic usage of Dasein Cloud Joyent submodule:
       <dependency>
         <groupId>org.dasein</groupId>
         <artifactId>dasein-cloud-core</artifactId>
-        <version>2013.07.0</version>
+        <version>2013.07.2</version>
         <scope>compile</scope>
         <optional>false</optional>
       </dependency>
@@ -76,29 +47,27 @@ Here is some basic usage of Dasein Cloud Joyent submodule:
 
 ### Set variables
 
-You can set variables inside maven using maven-surfire-plugin:
+Add or modify maven profile in pom.xml according your configuration.
 
-    <plugin>
-      <groupId>org.apache.maven.plugins</groupId>
-      <artifactId>maven-surefire-plugin</artifactId>
-      <version>2.6</version>
-      <configuration>
-          <systemPropertyVariables>
-              <DSN_PROVIDER_CLASS>org.dasein.cloud.joyent.SmartDataCenter</DSN_PROVIDER_CLASS>
-              <DSN_ENDPOINT>https://us-west-1.api.joyentcloud.com</DSN_ENDPOINT>
-              <DSN_REGION>us-west</DSN_REGION>
-              <DSN_API_SHARED>""</DSN_API_SHARED>
-              <DSN_API_SECRET>""</DSN_API_SECRET>
-              <DSN_ACCOUNT>altoros2</DSN_ACCOUNT>
-              <DSN_CLOUD_NAME>Joyent Cloud</DSN_CLOUD_NAME>
-              <DSN_CLOUD_PROVIDER>Joyent</DSN_CLOUD_PROVIDER>
-              <DSN_CUSTOM_STORAGE_URL>https://us-east.manta.joyent.com</DSN_CUSTOM_STORAGE_URL>
-              <DSN_CUSTOM_KEY_PATH>src/test/resources/data/id_rsa</DSN_CUSTOM_KEY_PATH>
-              <DSN_CUSTOM_KEY_FINGERPRINT>04:92:7b:23:bc:08:4f:d7:3b:5a:38:9e:4a:17:2e:df</DSN_CUSTOM_KEY_FINGERPRINT>
-              <DSN_CLOUD_PROVIDER>Joyent</DSN_CLOUD_PROVIDER>
-          </systemPropertyVariables>
-      </configuration>
-    </plugin>
+    <profiles>
+      <profile>
+        <id>default</id>
+        <activation>
+          <activeByDefault>true</activeByDefault>
+        </activation>
+        <properties>
+          <providerClass>org.dasein.cloud.joyent.SmartDataCenter</providerClass>
+          <endpoint>https://us-west-1.api.joyentcloud.com</endpoint>
+          <storageUrl>https://us-east.manta.joyent.com</storageUrl>
+          <keyPath>src/test/resources/data/id_rsa</keyPath>
+          <keyFingerprint>yourFingerprint</keyFingerprint>
+          <accountNumber>yourAccount</accountNumber>
+          <cloudName>Joyent Cloud</cloudName>
+          <providerName>Joyent</providerName>
+          <regionId>us-west-1</regionId>
+        </properties>
+      </profile>
+    </profiles>
 
 Or you can set system variables in Java using this snippet:
 
@@ -138,9 +107,9 @@ dsn.properties:
 
 
     public class SimpleClientTest {
-        private static final String FILE_PATH = "/path/to/you/file/Master-Yoda.jpg";
-        private static final String OBJECT_NAME = "Master-Yoda.jpg";
-        private static final String OBJECT_PATH = "/altoros2/stor/1/";
+        private static final String FILE_PATH = "/path/to/you/file/file.txt";
+        private static final String OBJECT_NAME = "file.txt";
+        private static final String OBJECT_PATH = "/username/stor/1/";
 
         public static void main(String[] args) throws ClassNotFoundException, InstantiationException,
                 UnsupportedEncodingException, IllegalAccessException, CloudException, InternalException {
