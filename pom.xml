@@ -52,7 +52,7 @@
     <dependency>
         <groupId>org.dasein</groupId>
         <artifactId>dasein-cloud-core</artifactId>
-        <version>2013.07.0</version>
+        <version>2013.07.2</version>
         <scope>compile</scope>
         <optional>false</optional>
     </dependency>
@@ -233,7 +233,7 @@
         <endpoint>https://us-west-1.api.joyentcloud.com</endpoint>
         <storageUrl>https://us-east.manta.joyent.com</storageUrl>
         <keyPath>src/test/resources/data/id_rsa</keyPath>
-        <keyFingerprint>04:92:7b:23:bc:08:4f:d7:3b:5a:38:9e:4a:17:2e:df</keyFingerprint>
+        <keyFingerprint></keyFingerprint>
         <accountNumber>altoros2</accountNumber>
         <cloudName>Joyent Cloud</cloudName>
         <providerName>Joyent</providerName>
