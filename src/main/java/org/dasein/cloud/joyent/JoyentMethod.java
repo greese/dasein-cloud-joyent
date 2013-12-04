@@ -22,56 +22,44 @@ package org.dasein.cloud.joyent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Date;
 import java.util.Map;
-import java.util.Properties;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.HttpVersion;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.AuthenticationException;
-import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
-import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpParams;
-import org.apache.http.params.HttpProtocolParams;
-import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudErrorType;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
-import org.dasein.cloud.ProviderContext;
+import org.dasein.security.joyent.*;
 
 public class JoyentMethod {
     static private final Logger logger = SmartDataCenter.getLogger(JoyentMethod.class, "std");
     static private final Logger wire   = SmartDataCenter.getLogger(JoyentMethod.class, "wire");
 
-    static public final String VERSION = "~6.5";
+    static public final String VERSION = "~7.1";
     
-    protected SmartDataCenter provider;
+    private JoyentClientFactory clientFactory;
+    private JoyentHttpAuth httpAuth;
     
-    public JoyentMethod(@Nonnull SmartDataCenter provider) { this.provider = provider; }
+    public JoyentMethod(@Nonnull SmartDataCenter provider) {
+        this.clientFactory = new DefaultClientFactory();
+        this.httpAuth = new SignatureHttpAuth(provider.getContext());
+    }
     
     public void doDelete(@Nonnull String endpoint, @Nonnull String resource) throws CloudException, InternalException {
         if( logger.isTraceEnabled() ) {
@@ -82,12 +70,12 @@ public class JoyentMethod {
             wire.debug(">>> [DELETE (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient(endpoint);
+            HttpClient client = clientFactory.getClient(endpoint);
             HttpDelete delete = new HttpDelete(endpoint + "/my/" + resource);
-            addPreemptiveAuth(delete);
+            httpAuth.addPreemptiveAuth(delete);
 
             delete.addHeader("Accept", "application/json");
-            delete.addHeader("X-Api-Version", "~6.5");
+            delete.addHeader("X-Api-Version", VERSION);
             if( wire.isDebugEnabled() ) {
                 wire.debug(delete.getRequestLine().toString());
                 for( Header header : delete.getAllHeaders() ) {
@@ -173,12 +161,12 @@ public class JoyentMethod {
             wire.debug(">>> [GET (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient(endpoint);
+            HttpClient client = clientFactory.getClient(endpoint);
             HttpGet get = new HttpGet(endpoint + "/my/" + resource);
-            addPreemptiveAuth(get);
+            httpAuth.addPreemptiveAuth(get);
 
             get.addHeader("Accept", "application/json");
-            get.addHeader("X-Api-Version", "~6.5");
+            get.addHeader("X-Api-Version", VERSION);
 
             if( wire.isDebugEnabled() ) {
                 wire.debug(get.getRequestLine().toString());
@@ -283,12 +271,12 @@ public class JoyentMethod {
             wire.debug(">>> [GET (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient(endpoint);
+            HttpClient client = clientFactory.getClient(endpoint);
             HttpGet get = new HttpGet(endpoint + "/my/" + resource);
-            addPreemptiveAuth(get);
+            httpAuth.addPreemptiveAuth(get);
 
             get.addHeader("Accept", "application/json");
-            get.addHeader("X-Api-Version", "~6.5");
+            get.addHeader("X-Api-Version", VERSION);
 
             if( wire.isDebugEnabled() ) {
                 wire.debug(get.getRequestLine().toString());
@@ -382,67 +370,6 @@ public class JoyentMethod {
             }
         }
     }
-
-    protected @Nonnull HttpClient getClient(String endpoint) throws CloudException, InternalException {
-        ProviderContext ctx = provider.getContext();
-
-        if( ctx == null ) {
-            throw new CloudException("No context was defined for this request");
-        }
-
-        if( endpoint == null ) {
-            throw new CloudException("No cloud endpoint was defined");
-        }
-        boolean ssl = endpoint.startsWith("https");
-        int targetPort;
-        URI uri;
-
-        try {
-            uri = new URI(endpoint);
-            targetPort = uri.getPort();
-            if( targetPort < 1 ) {
-                targetPort = (ssl ? 443 : 80);
-            }
-        }
-        catch( URISyntaxException e ) {
-            throw new CloudException(e);
-        }
-        HttpHost targetHost = new HttpHost(uri.getHost(), targetPort, uri.getScheme());
-        HttpParams params = new BasicHttpParams();
-
-        HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
-        //noinspection deprecation
-        HttpProtocolParams.setContentCharset(params, HTTP.UTF_8);
-        HttpProtocolParams.setUserAgent(params, "");
-
-        Properties p = ctx.getCustomProperties();
-
-        if( p != null ) {
-            String proxyHost = p.getProperty("proxyHost");
-            String proxyPort = p.getProperty("proxyPort");
-
-            if( proxyHost != null ) {
-                int port = 0;
-
-                if( proxyPort != null && proxyPort.length() > 0 ) {
-                    port = Integer.parseInt(proxyPort);
-                }
-                params.setParameter(ConnRoutePNames.DEFAULT_PROXY, new HttpHost(proxyHost, port, ssl ? "https" : "http"));
-            }
-        }
-        DefaultHttpClient client = new DefaultHttpClient(params);
-
-        try {
-            String userName = new String(ctx.getAccessPublic(), "utf-8");
-            String password = new String(ctx.getAccessPrivate(), "utf-8");
-
-            client.getCredentialsProvider().setCredentials(new AuthScope(targetHost.getHostName(), targetHost.getPort()), new UsernamePasswordCredentials(userName, password));
-        }
-        catch( UnsupportedEncodingException e ) {
-            throw new InternalException(e);
-        }
-        return client;
-    }
     
     @SuppressWarnings("unused")
     public @Nullable String doPostHeaders(@Nonnull String endpoint, @Nonnull String resource, @Nullable Map<String,String> customHeaders) throws CloudException, InternalException {
@@ -454,12 +381,12 @@ public class JoyentMethod {
             wire.debug(">>> [POST (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient(endpoint);
+            HttpClient client = clientFactory.getClient(endpoint);
             HttpPost post = new HttpPost(endpoint + "/my/" + resource);
-            addPreemptiveAuth(post);
+            httpAuth.addPreemptiveAuth(post);
 
             post.addHeader("Accept", "application/json");
-            post.addHeader("X-Api-Version", "~6.5");
+            post.addHeader("X-Api-Version", VERSION);
             if( customHeaders != null ) {
                 for( Map.Entry<String, String> entry : customHeaders.entrySet() ) {
                     String val = (entry.getValue() == null ? "" : entry.getValue());
@@ -581,9 +508,9 @@ public class JoyentMethod {
             wire.debug(">>> [POST (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient(endpoint);
+            HttpClient client = clientFactory.getClient(endpoint);
             HttpPost post = new HttpPost(endpoint + "/my/" + resource);
-            addPreemptiveAuth(post);
+            httpAuth.addPreemptiveAuth(post);
 
             if( payload != null && payload.startsWith("action") ) {
                 post.addHeader("Content-Type", "application/x-www-form-urlencoded");
@@ -721,9 +648,9 @@ public class JoyentMethod {
             wire.debug(">>> [POST (" + (new Date()) + ")] -> " + endpoint + "/" + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient(endpoint);
+            HttpClient client = clientFactory.getClient(endpoint);
             HttpPost post = new HttpPost(endpoint + resource);
-            addPreemptiveAuth(post);
+            httpAuth.addPreemptiveAuth(post);
 
             post.addHeader("Content-Type", "application/octet-stream");
             post.addHeader("Accept", "application/json");
@@ -852,7 +779,7 @@ public class JoyentMethod {
             wire.debug(">>> [PUT (" + (new Date()) + ")] -> " + endpoint + "/" + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient(endpoint);
+            HttpClient client = clientFactory.getClient(endpoint);
             HttpPut put = new HttpPut(endpoint + resource);
             
             put.addHeader("Content-Type", "application/json");
@@ -978,7 +905,7 @@ public class JoyentMethod {
             wire.debug(">>> [PUT (" + (new Date()) + ")] -> " + endpoint + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient(endpoint);
+            HttpClient client = clientFactory.getClient(endpoint);
             HttpPut put = new HttpPut(endpoint + resource);
             
             put.addHeader("Content-Type", "application/json");
@@ -1106,7 +1033,7 @@ public class JoyentMethod {
             wire.debug(">>> [PUT (" + (new Date()) + ")] -> " + endpoint + resource + " >--------------------------------------------------------------------------------------");
         }
         try {
-            HttpClient client = getClient(endpoint);
+            HttpClient client = clientFactory.getClient(endpoint);
             HttpPut put = new HttpPut(endpoint + resource);
             
             put.addHeader("Content-Type", "application/octet-stream");
@@ -1229,20 +1156,4 @@ public class JoyentMethod {
         }
     }
 
-    protected void addPreemptiveAuth(@Nonnull HttpRequest request) throws CloudException, InternalException {
-        ProviderContext ctx = provider.getContext();
-        if( ctx == null ) {
-            throw new CloudException("No context was defined for this request");
-        }
-        try {
-            String username = new String(ctx.getAccessPublic(), "utf-8");
-            String password = new String(ctx.getAccessPrivate(), "utf-8");
-            UsernamePasswordCredentials creds = new UsernamePasswordCredentials(username, password);
-            request.addHeader(new BasicScheme().authenticate(creds, request));
-        } catch (UnsupportedEncodingException e) {
-            throw new InternalException(e);
-        } catch (AuthenticationException e) {
-            throw new InternalException(e);
-        }
-    }
 }
