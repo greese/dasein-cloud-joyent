@@ -11,7 +11,6 @@ import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.joyent.storage.Manta;
 
 import javax.annotation.Nonnull;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.security.*;
 import java.text.DateFormat;
@@ -43,6 +42,7 @@ public class SignatureHttpAuth implements JoyentHttpAuth {
         String now = RFC1123_DATE_FORMAT.format(date);
         request.setHeader("Date", now);
         try {
+            Security.addProvider(new BouncyCastleProvider());
             Signature signature = Signature.getInstance(SIGN_ALGORITHM);
             signature.initSign(getKeyPair(customProperties.getProperty(Manta.CUSTOM_PROP_KEY_PATH)).getPrivate());
             String signingString = String.format(AUTH_SIGN, now);
@@ -70,7 +70,6 @@ public class SignatureHttpAuth implements JoyentHttpAuth {
 
     private KeyPair getKeyPair(String keyPath) throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader(keyPath));
-        Security.addProvider(new BouncyCastleProvider());
         PEMReader pemReader = new PEMReader(reader);
         try {
              return (KeyPair) pemReader.readObject();

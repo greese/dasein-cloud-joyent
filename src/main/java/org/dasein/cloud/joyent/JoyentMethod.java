@@ -21,7 +21,6 @@ package org.dasein.cloud.joyent;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.Map;
 
@@ -50,7 +49,8 @@ import org.dasein.security.joyent.*;
 public class JoyentMethod {
     static private final Logger logger = SmartDataCenter.getLogger(JoyentMethod.class, "std");
     static private final Logger wire   = SmartDataCenter.getLogger(JoyentMethod.class, "wire");
-
+    static private final ContentType APPLICATION_FORM_URLENCODED_UTF8 = ContentType.create("application/x-www-form-urlencoded", "UTF-8");
+    static private final ContentType APPLICATION_JSON_UTF8 = ContentType.create("application/json", "UTF-8");        
     static public final String VERSION = "~7.1";
     
     private JoyentClientFactory clientFactory;
@@ -261,7 +261,6 @@ public class JoyentMethod {
         }
     }
     
-    @SuppressWarnings("unused")
     public @Nullable InputStream doGetStream(@Nonnull String endpoint, @Nonnull String resource) throws CloudException, InternalException {
         if( logger.isTraceEnabled() ) {
             logger.trace("ENTER - " + JoyentMethod.class.getName() + ".doGetStream(" + endpoint + "," + resource + ")");
@@ -371,7 +370,6 @@ public class JoyentMethod {
         }
     }
     
-    @SuppressWarnings("unused")
     public @Nullable String doPostHeaders(@Nonnull String endpoint, @Nonnull String resource, @Nullable Map<String,String> customHeaders) throws CloudException, InternalException {
         if( logger.isTraceEnabled() ) {
             logger.trace("ENTER - " + JoyentMethod.class.getName() + ".doPostHeaders(" + endpoint + "," + resource +  "," + customHeaders + ")");
@@ -521,18 +519,11 @@ public class JoyentMethod {
             post.addHeader("Accept", "application/json");
             post.addHeader("X-Api-Version", VERSION);
 
-            try {
-                if( payload != null && payload.startsWith("action") ) {
-                    //noinspection deprecation
-                    post.setEntity(new StringEntity(payload, "application/x-www-form-urlencoded", "UTF-8"));
-                }
-                else {
-                    //noinspection deprecation
-                    post.setEntity(new StringEntity(payload == null ? "" : payload, "application/json", "UTF-8"));
-                }
+            if( payload != null && payload.startsWith("action") ) {
+                post.setEntity(new StringEntity(payload, APPLICATION_FORM_URLENCODED_UTF8));
             }
-            catch( UnsupportedEncodingException e ) {
-                throw new InternalException(e);
+            else {
+                post.setEntity(new StringEntity(payload == null ? "" : payload, APPLICATION_JSON_UTF8));
             }
             if( wire.isDebugEnabled() ) {
                 wire.debug(post.getRequestLine().toString());
@@ -638,7 +629,6 @@ public class JoyentMethod {
         }
     }
 
-    @SuppressWarnings("unused")
     public @Nullable String doPostStream(@Nonnull String endpoint, @Nonnull String resource, @Nullable String md5Hash, @Nullable InputStream stream) throws CloudException, InternalException {
         if( logger.isTraceEnabled() ) {
             logger.trace("ENTER - " + JoyentMethod.class.getName() + ".doPostStream(" + endpoint + "," + resource +  "," + md5Hash + ",PAYLOAD)");
@@ -769,7 +759,6 @@ public class JoyentMethod {
         }
     }
     
-    @SuppressWarnings("unused")
     protected @Nullable String putHeaders(@Nonnull String authToken, @Nonnull String endpoint, @Nonnull String resource, @Nullable Map<String,String> customHeaders) throws CloudException, InternalException {
         if( logger.isTraceEnabled() ) {
             logger.trace("ENTER - " + JoyentMethod.class.getName() + ".doPutHeaders(" + endpoint + "," + resource +  "," + customHeaders + ")");
@@ -895,7 +884,6 @@ public class JoyentMethod {
         }
     }
     
-    @SuppressWarnings("unused")
     protected String putString(@Nonnull String authToken, @Nonnull String endpoint, @Nonnull String resource, @Nullable String payload) throws CloudException, InternalException {
         if( logger.isTraceEnabled() ) {
             logger.trace("ENTER - " + JoyentMethod.class.getName() + ".doPutString(" + endpoint + "," + resource +  ",PAYLOAD)");
@@ -912,13 +900,7 @@ public class JoyentMethod {
             put.addHeader("Accept", "application/json");
             put.addHeader("X-Auth-Token", authToken);
 
-            try {
-                //noinspection deprecation
-                put.setEntity(new StringEntity(payload == null ? "" : payload, "application/json", "UTF-8"));
-            }
-            catch( UnsupportedEncodingException e ) {
-                throw new InternalException(e);
-            }
+            put.setEntity(new StringEntity(payload == null ? "" : payload, APPLICATION_JSON_UTF8));
 
             if( wire.isDebugEnabled() ) {
                 wire.debug(put.getRequestLine().toString());
@@ -1023,7 +1005,6 @@ public class JoyentMethod {
         }
     }
 
-    @SuppressWarnings("unused")
     protected @Nullable String putStream(@Nonnull String authToken, @Nonnull String endpoint, @Nonnull String resource, @Nullable String md5Hash, @Nullable InputStream stream) throws CloudException, InternalException {
         if( logger.isTraceEnabled() ) {
             logger.trace("ENTER - " + JoyentMethod.class.getName() + ".doPutStream(" + endpoint + "," + resource +  "," + md5Hash + ",PAYLOAD)");
