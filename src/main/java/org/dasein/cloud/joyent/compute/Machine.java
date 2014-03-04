@@ -31,15 +31,7 @@ import org.dasein.cloud.InternalException;
 import org.dasein.cloud.Requirement;
 import org.dasein.cloud.ResourceStatus;
 import org.dasein.cloud.Tag;
-import org.dasein.cloud.compute.AbstractVMSupport;
-import org.dasein.cloud.compute.Architecture;
-import org.dasein.cloud.compute.ImageClass;
-import org.dasein.cloud.compute.MachineImage;
-import org.dasein.cloud.compute.Platform;
-import org.dasein.cloud.compute.VMLaunchOptions;
-import org.dasein.cloud.compute.VirtualMachine;
-import org.dasein.cloud.compute.VirtualMachineProduct;
-import org.dasein.cloud.compute.VmState;
+import org.dasein.cloud.compute.*;
 import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.joyent.JoyentMethod;
 import org.dasein.cloud.joyent.SmartDataCenter;
@@ -57,7 +49,8 @@ public class Machine extends AbstractVMSupport {
     Logger logger = SmartDataCenter.getLogger(Machine.class, "std");
 
     private SmartDataCenter provider;
-    
+    private transient volatile MachineCapabilities capabilities;
+
     Machine(SmartDataCenter sdc) {
         super(sdc);
         provider = sdc;
@@ -120,7 +113,16 @@ public class Machine extends AbstractVMSupport {
     }
 
     static private HashMap<String,VirtualMachineProduct> productCache = new HashMap<String,VirtualMachineProduct>();
-    
+
+    @Nonnull
+    @Override
+    public VirtualMachineCapabilities getCapabilities() throws InternalException, CloudException {
+        if( capabilities == null ) {
+            capabilities = new MachineCapabilities(provider);
+        }
+        return capabilities;
+    }
+
     @Override
     public @Nullable VirtualMachineProduct getProduct(@Nonnull String productId) throws InternalException, CloudException {
         if( productCache.containsKey(productId) ) {
