@@ -99,7 +99,7 @@ public class MachineCapabilities extends AbstractCapabilities<SmartDataCenter> i
 
     @Override
     public int getCostFactor(@Nonnull VmState state) throws CloudException, InternalException {
-        return (VmState.STOPPED.equals(state) ? 0 : 100);
+        return (VmState.TERMINATED.equals(state) ? 0 : 100);
     }
 
     @Nonnull
