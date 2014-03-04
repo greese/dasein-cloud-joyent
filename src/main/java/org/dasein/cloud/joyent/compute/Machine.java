@@ -584,13 +584,12 @@ public class Machine extends AbstractVMSupport {
             if( ob.has("created") ) {
                 vm.setCreationTimestamp(provider.parseTimestamp(ob.getString("created")));
             }
-            vm.setPausable(false);
+            vm.setPausable(false); // can't ever pause/resume joyent vms
             vm.setRebootable(false);
             if( ob.has("state") ) {
                 vm.setCurrentState(toState(ob.getString("state")));
 
                 if( VmState.RUNNING.equals(vm.getCurrentState()) ) {
-                    vm.setPausable(true);
                     vm.setRebootable(true);
                 }
             }
