@@ -45,7 +45,7 @@ import org.json.JSONObject;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public class Machine extends AbstractVMSupport {
+public class Machine extends AbstractVMSupport<SmartDataCenter> {
     Logger logger = SmartDataCenter.getLogger(Machine.class, "std");
 
     private SmartDataCenter provider;
