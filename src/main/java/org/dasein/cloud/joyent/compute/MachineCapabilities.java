@@ -21,6 +21,7 @@ package org.dasein.cloud.joyent.compute;
 import org.dasein.cloud.*;
 import org.dasein.cloud.compute.*;
 import org.dasein.cloud.joyent.SmartDataCenter;
+import org.dasein.cloud.util.NamingConstraints;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -112,6 +113,12 @@ public class MachineCapabilities extends AbstractCapabilities<SmartDataCenter> i
     @Override
     public VMScalingCapabilities getVerticalScalingCapabilities() throws CloudException, InternalException {
         return null;
+    }
+
+    @Nonnull
+    @Override
+    public NamingConstraints getVirtualMachineNamingConstraints() throws CloudException, InternalException {
+        return NamingConstraints.getAlphaNumeric(1, 255).constrainedBy('-', '_');
     }
 
     @Nonnull

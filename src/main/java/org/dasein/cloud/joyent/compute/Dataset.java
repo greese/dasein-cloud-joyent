@@ -28,15 +28,7 @@ import org.dasein.cloud.InternalException;
 import org.dasein.cloud.OperationNotSupportedException;
 import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.Requirement;
-import org.dasein.cloud.compute.AbstractImageSupport;
-import org.dasein.cloud.compute.Architecture;
-import org.dasein.cloud.compute.ImageClass;
-import org.dasein.cloud.compute.ImageFilterOptions;
-import org.dasein.cloud.compute.MachineImage;
-import org.dasein.cloud.compute.MachineImageFormat;
-import org.dasein.cloud.compute.MachineImageState;
-import org.dasein.cloud.compute.MachineImageType;
-import org.dasein.cloud.compute.Platform;
+import org.dasein.cloud.compute.*;
 import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.joyent.JoyentMethod;
 import org.dasein.cloud.joyent.SmartDataCenter;
@@ -49,10 +41,19 @@ import javax.annotation.Nullable;
 
 public class Dataset extends AbstractImageSupport {
     private SmartDataCenter provider;
-    
+    private DatasetCapabilities capabilities;
+
     Dataset(@Nonnull SmartDataCenter sdc) {
         super(sdc);
         provider = sdc;
+    }
+
+    @Override
+    public ImageCapabilities getCapabilities() throws CloudException, InternalException {
+        if( capabilities == null ) {
+            capabilities = new DatasetCapabilities(provider);
+        }
+        return capabilities;
     }
 
     @Override
@@ -89,7 +90,7 @@ public class Dataset extends AbstractImageSupport {
 
     @Override
     public @Nonnull Requirement identifyLocalBundlingRequirement() throws CloudException, InternalException {
-        return Requirement.NONE;
+        return getCapabilities().identifyLocalBundlingRequirement();
     }
 
     @Override
