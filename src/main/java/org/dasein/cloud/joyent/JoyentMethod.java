@@ -58,7 +58,7 @@ public class JoyentMethod {
     
     public JoyentMethod(@Nonnull SmartDataCenter provider) {
         this.clientFactory = new DefaultClientFactory();
-        this.httpAuth = new SignatureHttpAuth(provider.getContext());
+        this.httpAuth = new SignatureHttpAuth(provider);
     }
     
     public void doDelete(@Nonnull String endpoint, @Nonnull String resource) throws CloudException, InternalException {
