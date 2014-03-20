@@ -52,7 +52,7 @@
     <dependency>
         <groupId>org.dasein</groupId>
         <artifactId>dasein-cloud-core</artifactId>
-        <version>2014.03.2-SNAPSHOT</version>
+        <version>2014.03.1</version>
         <scope>compile</scope>
         <optional>false</optional>
     </dependency>
@@ -79,7 +79,7 @@
       <dependency>
           <groupId>org.dasein</groupId>
           <artifactId>dasein-cloud-test</artifactId>
-          <version>2014.03.1</version>
+          <version>2014.03.2-SNAPSHOT</version>
           <scope>test</scope>
           <optional>false</optional>
           <exclusions>
@@ -220,6 +220,18 @@
                 <property>
                     <name>regionId</name>
                     <value>${regionId}</value>
+                </property>
+                <property>
+                    <name>sshKeyShared</name>
+                    <value>${sshKeyShared}</value>
+                </property>
+                <property>
+                    <name>sshKeySecret</name>
+                    <value>${sshKeySecret}</value>
+                </property>
+                <property>
+                    <name>sshKeyPassword</name>
+                    <value>${sshKeyPassword}</value>
                 </property>
             </systemProperties> 
           <includes>

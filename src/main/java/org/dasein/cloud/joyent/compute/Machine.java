@@ -681,22 +681,16 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
             if( urnMapping.containsKey(urn) ) {
                 return urnMapping.get(urn);
             }
-            System.out.println("");
-            System.out.println("URN: " + urn);
             MachineImage img = provider.getComputeServices().getImageSupport().getImage(urn);
 
             if( img != null ) {
                 String id = img.getProviderMachineImageId();
 
-                System.out.println("ID: " + id);
                 if( id != null ) {
                     urnMapping.put(urn, id);
-                    System.out.println("");
                     return id;
                 }
             }
-            System.out.println("Unable to identify ID from URN: " + urn);
-            System.out.println("");
             return urn;
         }
         finally {
