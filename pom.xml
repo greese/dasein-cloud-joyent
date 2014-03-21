@@ -3,7 +3,7 @@
   
   <groupId>org.dasein</groupId>
   <artifactId>dasein-cloud-joyent</artifactId>
-  <version>2014.03-SNAPSHOT</version>
+  <version>2014.03.1-SNAPSHOT</version>
 
   <name>Dasein Cloud Joyent</name>
   <description>Native API implementation for the Joyent API</description>
@@ -79,7 +79,7 @@
       <dependency>
           <groupId>org.dasein</groupId>
           <artifactId>dasein-cloud-test</artifactId>
-          <version>2014.03.2-SNAPSHOT</version>
+          <version>2014.03.1</version>
           <scope>test</scope>
           <optional>false</optional>
           <exclusions>
@@ -234,9 +234,9 @@
                     <value>${sshKeyPassword}</value>
                 </property>
             </systemProperties> 
-          <includes>
-           <include>**/TestSuite.java</include>
-          </includes>
+          <excludes>
+            <exclude>**/TestSuite.java</exclude>
+          </excludes>
         </configuration>
       </plugin> 
       <plugin>
@@ -267,7 +267,7 @@
         <endpoint>https://us-west-1.api.joyentcloud.com</endpoint>
         <storageUrl>https://us-east.manta.joyent.com</storageUrl>
         <keyPath>src/test/resources/data/id_rsa</keyPath>
-        <keyFingerprint></keyFingerprint>
+        <keyFingerprint />
         <accountNumber>altoros2</accountNumber>
         <cloudName>Joyent Cloud</cloudName>
         <providerName>Joyent</providerName>
