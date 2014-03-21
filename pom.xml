@@ -256,26 +256,6 @@
     </plugins>
   </build>
 
-  <profiles>
-    <profile>
-      <id>default</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-      <properties>
-        <providerClass>org.dasein.cloud.joyent.SmartDataCenter</providerClass>
-        <endpoint>https://us-west-1.api.joyentcloud.com</endpoint>
-        <storageUrl>https://us-east.manta.joyent.com</storageUrl>
-        <keyPath>src/test/resources/data/id_rsa</keyPath>
-        <keyFingerprint />
-        <accountNumber>altoros2</accountNumber>
-        <cloudName>Joyent Cloud</cloudName>
-        <providerName>Joyent</providerName>
-        <regionId>us-west-1</regionId>
-      </properties>
-    </profile>
-  </profiles>
-
   <distributionManagement>
     <repository>
         <id>sonatype-nexus-staging</id>
