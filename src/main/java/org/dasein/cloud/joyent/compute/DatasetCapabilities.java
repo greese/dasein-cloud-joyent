@@ -50,13 +50,13 @@ public class DatasetCapabilities extends AbstractCapabilities<SmartDataCenter> i
 
     @Override
     public boolean canImage(@Nonnull VmState fromState) throws CloudException, InternalException {
-        return false;
+        return fromState.equals(VmState.STOPPED);
     }
 
     @Nonnull
     @Override
     public String getProviderTermForImage(@Nonnull Locale locale, @Nonnull ImageClass cls) {
-        return "dataset";
+        return "image";
     }
 
     @Nonnull
@@ -102,7 +102,7 @@ public class DatasetCapabilities extends AbstractCapabilities<SmartDataCenter> i
 
     @Override
     public boolean supportsImageCapture(@Nonnull MachineImageType type) throws CloudException, InternalException {
-        return false;
+        return true;
     }
 
     @Override
