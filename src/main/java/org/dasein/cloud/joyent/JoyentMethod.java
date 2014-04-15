@@ -69,8 +69,9 @@ public class JoyentMethod {
             wire.debug("");
             wire.debug(">>> [DELETE (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " >--------------------------------------------------------------------------------------");
         }
+        HttpClient client = null;
         try {
-            HttpClient client = clientFactory.getClient(endpoint);
+            client = clientFactory.getClient(endpoint);
             HttpDelete delete = new HttpDelete(endpoint + "/my/" + resource);
             httpAuth.addPreemptiveAuth(delete);
 
@@ -149,6 +150,10 @@ public class JoyentMethod {
                 wire.debug("<<< [DELETE (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
             }
+            if (client != null)
+            {
+                client.getConnectionManager().shutdown();
+            }
         }
     }
     
@@ -160,8 +165,9 @@ public class JoyentMethod {
             wire.debug("");
             wire.debug(">>> [GET (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " >--------------------------------------------------------------------------------------");
         }
+        HttpClient client = null;
         try {
-            HttpClient client = clientFactory.getClient(endpoint);
+            client = clientFactory.getClient(endpoint);
             HttpGet get = new HttpGet(endpoint + "/my/" + resource);
             httpAuth.addPreemptiveAuth(get);
 
@@ -258,6 +264,9 @@ public class JoyentMethod {
                 wire.debug("<<< [GET (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
             }
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
     }
     
@@ -269,8 +278,9 @@ public class JoyentMethod {
             wire.debug("");
             wire.debug(">>> [GET (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " >--------------------------------------------------------------------------------------");
         }
+        HttpClient client = null;
         try {
-            HttpClient client = clientFactory.getClient(endpoint);
+            client = clientFactory.getClient(endpoint);
             HttpGet get = new HttpGet(endpoint + "/my/" + resource);
             httpAuth.addPreemptiveAuth(get);
 
@@ -367,6 +377,9 @@ public class JoyentMethod {
                 wire.debug("<<< [GET (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
             }
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
     }
     
@@ -378,8 +391,9 @@ public class JoyentMethod {
             wire.debug("");
             wire.debug(">>> [POST (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " >--------------------------------------------------------------------------------------");
         }
+        HttpClient client = null;
         try {
-            HttpClient client = clientFactory.getClient(endpoint);
+            client = clientFactory.getClient(endpoint);
             HttpPost post = new HttpPost(endpoint + "/my/" + resource);
             httpAuth.addPreemptiveAuth(post);
 
@@ -494,6 +508,9 @@ public class JoyentMethod {
                 wire.debug("<<< [POST (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
             }               
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
     }
     
@@ -505,8 +522,9 @@ public class JoyentMethod {
             wire.debug("");
             wire.debug(">>> [POST (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " >--------------------------------------------------------------------------------------");
         }
+        HttpClient client = null;
         try {
-            HttpClient client = clientFactory.getClient(endpoint);
+            client = clientFactory.getClient(endpoint);
             HttpPost post = new HttpPost(endpoint + "/my/" + resource);
             httpAuth.addPreemptiveAuth(post);
 
@@ -626,6 +644,9 @@ public class JoyentMethod {
                 wire.debug("<<< [POST (" + (new Date()) + ")] -> " + endpoint + "/my/" + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
             }
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
     }
 
@@ -637,8 +658,9 @@ public class JoyentMethod {
             wire.debug("");
             wire.debug(">>> [POST (" + (new Date()) + ")] -> " + endpoint + "/" + resource + " >--------------------------------------------------------------------------------------");
         }
+        HttpClient client = null;
         try {
-            HttpClient client = clientFactory.getClient(endpoint);
+            client = clientFactory.getClient(endpoint);
             HttpPost post = new HttpPost(endpoint + resource);
             httpAuth.addPreemptiveAuth(post);
 
@@ -767,8 +789,9 @@ public class JoyentMethod {
             wire.debug("");
             wire.debug(">>> [PUT (" + (new Date()) + ")] -> " + endpoint + "/" + resource + " >--------------------------------------------------------------------------------------");
         }
+        HttpClient client = null;
         try {
-            HttpClient client = clientFactory.getClient(endpoint);
+            client = clientFactory.getClient(endpoint);
             HttpPut put = new HttpPut(endpoint + resource);
             
             put.addHeader("Content-Type", "application/json");
@@ -881,6 +904,9 @@ public class JoyentMethod {
                 wire.debug("<<< [PUT (" + (new Date()) + ")] -> " + endpoint + "/" + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
             }
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
     }
     
@@ -892,8 +918,9 @@ public class JoyentMethod {
             wire.debug("");
             wire.debug(">>> [PUT (" + (new Date()) + ")] -> " + endpoint + resource + " >--------------------------------------------------------------------------------------");
         }
+        HttpClient client = null;
         try {
-            HttpClient client = clientFactory.getClient(endpoint);
+            client = clientFactory.getClient(endpoint);
             HttpPut put = new HttpPut(endpoint + resource);
             
             put.addHeader("Content-Type", "application/json");
@@ -1002,6 +1029,9 @@ public class JoyentMethod {
                 wire.debug("<<< [PUT (" + (new Date()) + ")] -> " + endpoint + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
             }
+            if (client != null) {
+                client.getConnectionManager().shutdown();
+            }
         }
     }
 
@@ -1013,8 +1043,9 @@ public class JoyentMethod {
             wire.debug("");
             wire.debug(">>> [PUT (" + (new Date()) + ")] -> " + endpoint + resource + " >--------------------------------------------------------------------------------------");
         }
+        HttpClient client = null;
         try {
-            HttpClient client = clientFactory.getClient(endpoint);
+            client = clientFactory.getClient(endpoint);
             HttpPut put = new HttpPut(endpoint + resource);
             
             put.addHeader("Content-Type", "application/octet-stream");
@@ -1133,6 +1164,9 @@ public class JoyentMethod {
             if( wire.isDebugEnabled() ) {
                 wire.debug("<<< [PUT (" + (new Date()) + ")] -> " + endpoint + resource + " <--------------------------------------------------------------------------------------");
                 wire.debug("");
+            }
+            if (client != null) {
+                client.getConnectionManager().shutdown();
             }
         }
     }
