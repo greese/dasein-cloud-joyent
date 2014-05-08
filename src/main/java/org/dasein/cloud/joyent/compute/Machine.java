@@ -119,11 +119,6 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
 
     static private HashMap<String,VirtualMachineProduct> productCache = new HashMap<String,VirtualMachineProduct>();
 
-    @Override
-    public VirtualMachine modifyInstance( @Nonnull String vmId, @Nonnull String[] firewalls ) throws InternalException, CloudException {
-        throw new OperationNotSupportedException("Modification of instance firewall is not supported by " + getProvider().getCloudName());
-    }
-
     @Nonnull
     @Override
     public VirtualMachineCapabilities getCapabilities() throws InternalException, CloudException {
