@@ -44,6 +44,7 @@ import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudErrorType;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
+import org.dasein.cloud.ProviderContext;
 import org.dasein.security.joyent.*;
 
 public class JoyentMethod {
@@ -57,7 +58,7 @@ public class JoyentMethod {
     private JoyentHttpAuth httpAuth;
     
     public JoyentMethod(@Nonnull SmartDataCenter provider) {
-        this.clientFactory = new DefaultClientFactory();
+        this.clientFactory = new DefaultClientFactory(provider.getContext());
         this.httpAuth = new SignatureHttpAuth(provider);
     }
     

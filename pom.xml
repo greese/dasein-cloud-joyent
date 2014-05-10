@@ -233,12 +233,20 @@
                     <name>sshKeyPassword</name>
                     <value>${sshKeyPassword}</value>
                 </property>
-            </systemProperties> 
-          <excludes>
-            <exclude>**/TestSuite.java</exclude>
-            <exclude>**/storage/MantaStorageSmokeTest.java</exclude>
-            <exclude>**/storage/MantaStorageTest.java</exclude>
-          </excludes>
+                <property>
+                    <name>proxyHost</name>
+                    <value>${proxyHost}</value>
+                </property>
+                <property>
+                    <name>proxyPort</name>
+                    <value>${proxyPort}</value>
+                </property>
+            </systemProperties>
+          <includes>
+            <include>**/TestSuite.java</include>
+            <include>**/storage/MantaStorageSmokeTest.java</include>
+            <include>**/storage/MantaStorageTest.java</include>
+          </includes>
         </configuration>
       </plugin> 
       <plugin>
