@@ -41,25 +41,19 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Properties;
 
-public class AuthClientFactory implements JoyentClientFactory {
-
-    private ProviderContext providerContext;
+public class AuthClientFactory extends DefaultClientFactory implements JoyentClientFactory {
 
     public AuthClientFactory(ProviderContext providerContext) {
-        this.providerContext = providerContext;
+        super(providerContext);
     }
 
     @Override
     public @Nonnull HttpClient getClient(String endpoint) throws CloudException, InternalException {
-        ProviderContext ctx = providerContext;
-
-        if( ctx == null ) {
-            throw new CloudException("No context was defined for this request");
-        }
 
         if( endpoint == null ) {
             throw new CloudException("No cloud endpoint was defined");
         }
+
         boolean ssl = endpoint.startsWith("https");
         int targetPort;
         URI uri;
@@ -75,33 +69,12 @@ public class AuthClientFactory implements JoyentClientFactory {
             throw new CloudException(e);
         }
         HttpHost targetHost = new HttpHost(uri.getHost(), targetPort, uri.getScheme());
-        HttpParams params = new BasicHttpParams();
 
-        HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
-        //noinspection deprecation
-        HttpProtocolParams.setContentCharset(params, HTTP.UTF_8);
-        HttpProtocolParams.setUserAgent(params, "");
-
-        Properties p = ctx.getCustomProperties();
-
-        if( p != null ) {
-            String proxyHost = p.getProperty("proxyHost");
-            String proxyPort = p.getProperty("proxyPort");
-
-            if( proxyHost != null ) {
-                int port = 0;
-
-                if( proxyPort != null && proxyPort.length() > 0 ) {
-                    port = Integer.parseInt(proxyPort);
-                }
-                params.setParameter(ConnRoutePNames.DEFAULT_PROXY, new HttpHost(proxyHost, port, ssl ? "https" : "http"));
-            }
-        }
-        DefaultHttpClient client = new DefaultHttpClient(params);
+        DefaultHttpClient client = (DefaultHttpClient) super.getClient(endpoint);
 
         try {
-            String userName = new String(ctx.getAccessPublic(), "utf-8");
-            String password = new String(ctx.getAccessPrivate(), "utf-8");
+            String userName = new String(getProviderContext().getAccessPublic(), "utf-8");
+            String password = new String(getProviderContext().getAccessPrivate(), "utf-8");
 
             client.getCredentialsProvider().setCredentials(new AuthScope(targetHost.getHostName(), targetHost.getPort()), new UsernamePasswordCredentials(userName, password));
         }
