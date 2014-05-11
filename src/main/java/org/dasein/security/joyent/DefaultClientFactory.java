@@ -71,6 +71,8 @@ public class DefaultClientFactory implements JoyentClientFactory {
             }
         }
         DefaultHttpClient client = new DefaultHttpClient(params);
+        // Joyent does not support gzip at the moment (7.2), but in case it will
+        // in the future we might just leave these here
         client.addRequestInterceptor(new HttpRequestInterceptor() {
             public void process(
                     final HttpRequest request,
