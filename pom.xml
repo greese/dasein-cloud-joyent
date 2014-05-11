@@ -194,22 +194,6 @@
                     <value>${accountNumber}</value>
                 </property>
                 <property>
-                    <name>accessPublic</name>
-                    <value>${apiSharedKey}</value>
-                </property>
-                <property>
-                    <name>accessPrivate</name>
-                    <value>${apiSecretKey}</value>
-                </property>
-                <property>
-                    <name>apiSharedKey</name>
-                    <value>${apiSharedKey}</value>
-                </property>
-                <property>
-                    <name>apiSecretKey</name>
-                    <value>${apiSecretKey}</value>
-                </property>
-                <property>
                     <name>cloudName</name>
                     <value>${cloudName}</value>
                 </property>
@@ -244,8 +228,8 @@
             </systemProperties>
           <includes>
             <include>**/TestSuite.java</include>
-            <include>**/storage/MantaStorageSmokeTest.java</include>
-            <include>**/storage/MantaStorageTest.java</include>
+<!--            <include>**/storage/MantaStorageSmokeTest.java</include>
+            <include>**/storage/MantaStorageTest.java</include> -->
           </includes>
         </configuration>
       </plugin> 

@@ -31,7 +31,7 @@ Here is some basic usage of Dasein Cloud Joyent submodule:
       <dependency>
         <groupId>org.dasein</groupId>
         <artifactId>dasein-cloud-core</artifactId>
-        <version>2013.07.2</version>
+        <version>2014.07.1</version>
         <scope>compile</scope>
         <optional>false</optional>
       </dependency>
@@ -39,7 +39,7 @@ Here is some basic usage of Dasein Cloud Joyent submodule:
       <dependency>
         <groupId>org.dasein</groupId>
         <artifactId>dasein-cloud-joyent</artifactId>
-        <version>2013.07.1</version>
+        <version>2014.07.1</version>
         <scope>runtime</scope>
         <optional>false</optional>
       </dependency>
@@ -59,12 +59,17 @@ Add or modify maven profile in pom.xml according your configuration.
           <providerClass>org.dasein.cloud.joyent.SmartDataCenter</providerClass>
           <endpoint>https://us-west-1.api.joyentcloud.com</endpoint>
           <storageUrl>https://us-east.manta.joyent.com</storageUrl>
-          <keyPath>src/test/resources/data/id_rsa</keyPath>
-          <keyFingerprint>yourFingerprint</keyFingerprint>
+          <sshKeyShared>yourKeyName</sshKeyShared>
+          <sshKeySecret>----BEGIN RSA PRIVATE KEY-----
+                        your private RSA key
+                        -----END RSA PRIVATE KEY-----</sshKeySecret>
+          <sshKeyPassword>yourKeyPassword_Optional</sshKeyPassword>
           <accountNumber>yourAccount</accountNumber>
           <cloudName>Joyent Cloud</cloudName>
           <providerName>Joyent</providerName>
           <regionId>us-west-1</regionId>
+          <proxyHost>yourProxyHost_Optional</proxyHost>
+          <proxyPort>yourProxyPort_Optional</proxyPort>
         </properties>
       </profile>
     </profiles>

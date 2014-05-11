@@ -59,13 +59,14 @@ public class DefaultClientFactory implements JoyentClientFactory {
         Properties p = providerContext.getCustomProperties();
         if( p != null ) {
             String proxyHost = p.getProperty("proxyHost");
-            String proxyPort = p.getProperty("proxyPort");
-
-            if( proxyHost != null && proxyHost.length() > 0 && proxyPort != null && proxyPort.length() > 0 ) {
-                int port = Integer.parseInt(proxyPort);
-                boolean ssl = proxyHost.startsWith("https");
+            String proxyPortStr = p.getProperty("proxyPort");
+            int proxyPort = 0;
+            if( proxyPortStr != null ) {
+                proxyPort = Integer.parseInt(proxyPortStr);
+            }
+            if( proxyHost != null && proxyHost.length() > 0 && proxyPort > 0 ) {
                 params.setParameter(ConnRoutePNames.DEFAULT_PROXY,
-                        new HttpHost(proxyHost, port, ssl ? "https" : "http")
+                        new HttpHost(proxyHost, proxyPort)
                 );
             }
         }
