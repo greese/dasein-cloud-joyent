@@ -59,17 +59,20 @@ public class DefaultClientFactory implements JoyentClientFactory {
         Properties p = providerContext.getCustomProperties();
         if( p != null ) {
             String proxyHost = p.getProperty("proxyHost");
-            String proxyPort = p.getProperty("proxyPort");
-
-            if( proxyHost != null && proxyHost.length() > 0 && proxyPort != null && proxyPort.length() > 0 ) {
-                int port = Integer.parseInt(proxyPort);
-                boolean ssl = proxyHost.startsWith("https");
+            String proxyPortStr = p.getProperty("proxyPort");
+            int proxyPort = 0;
+            if( proxyPortStr != null ) {
+                proxyPort = Integer.parseInt(proxyPortStr);
+            }
+            if( proxyHost != null && proxyHost.length() > 0 && proxyPort > 0 ) {
                 params.setParameter(ConnRoutePNames.DEFAULT_PROXY,
-                        new HttpHost(proxyHost, port, ssl ? "https" : "http")
+                        new HttpHost(proxyHost, proxyPort)
                 );
             }
         }
         DefaultHttpClient client = new DefaultHttpClient(params);
+        // Joyent does not support gzip at the moment (7.2), but in case it will
+        // in the future we might just leave these here
         client.addRequestInterceptor(new HttpRequestInterceptor() {
             public void process(
                     final HttpRequest request,

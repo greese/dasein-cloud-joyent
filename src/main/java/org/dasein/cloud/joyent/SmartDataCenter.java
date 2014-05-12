@@ -82,7 +82,9 @@ public class SmartDataCenter extends AbstractCloud {
     public @Nonnull ContextRequirements getContextRequirements() {
         return new ContextRequirements(
                 new ContextRequirements.Field(DSN_SSH_KEY, "Private SSH Key stored in Joyent", ContextRequirements.FieldType.KEYPAIR, ContextRequirements.Field.ACCESS_KEYS, true),
-                new ContextRequirements.Field(DSN_SSH_KEY_PASSWORD, "Password of ssh key uploaded to Joyent", ContextRequirements.FieldType.PASSWORD, ContextRequirements.Field.ACCESS_KEYS, true)
+                new ContextRequirements.Field(DSN_SSH_KEY_PASSWORD, "Password of ssh key uploaded to Joyent", ContextRequirements.FieldType.PASSWORD, ContextRequirements.Field.ACCESS_KEYS, false),
+                new ContextRequirements.Field("proxyHost", "Proxy host", ContextRequirements.FieldType.TEXT, false),
+                new ContextRequirements.Field("proxyPort", "Proxy port", ContextRequirements.FieldType.TEXT, false)
         );
     }
     
