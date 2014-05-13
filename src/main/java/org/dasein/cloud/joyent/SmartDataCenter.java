@@ -39,9 +39,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class SmartDataCenter extends AbstractCloud {
-    public static final String DSN_SSH_KEY          = "sshKey";
-    public static final String DSN_SSH_KEY_PASSWORD = "sshKeyPassword";
-
     static private @Nonnull String getLastItem(@Nonnull String name) {
         int idx = name.lastIndexOf('.');
         
@@ -77,6 +74,9 @@ public class SmartDataCenter extends AbstractCloud {
     public @Nonnull JoyentComputeServices getComputeServices() {
         return new JoyentComputeServices(this);
     }
+
+    public static final String DSN_SSH_KEY          = "sshKey";
+    public static final String DSN_SSH_KEY_PASSWORD = "sshKeyPassword";
 
     @Override
     public @Nonnull ContextRequirements getContextRequirements() {
