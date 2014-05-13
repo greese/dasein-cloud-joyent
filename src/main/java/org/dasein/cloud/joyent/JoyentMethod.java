@@ -99,7 +99,6 @@ public class JoyentMethod {
             }
             catch( IOException e ) {
                 logger.error("I/O error from server communications: " + e.getMessage());
-                e.printStackTrace();
                 throw new InternalException(e);
             }
             int code = response.getStatusLine().getStatusCode();
@@ -123,7 +122,6 @@ public class JoyentMethod {
                 }
                 catch( IOException e ) {
                     logger.error("Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                    e.printStackTrace();
                     throw new CloudException(e);
                 }
                 JoyentException.ExceptionItems items = JoyentException.parseException(code, json);
@@ -190,7 +188,6 @@ public class JoyentMethod {
             }
             catch( IOException e ) {
                 logger.error("I/O error from server communications: " + e.getMessage());
-                e.printStackTrace();
                 throw new InternalException(e);
             }
             int code = response.getStatusLine().getStatusCode();
@@ -217,7 +214,6 @@ public class JoyentMethod {
                 }
                 catch( IOException e ) {
                     logger.error("Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                    e.printStackTrace();
                     throw new CloudException(e);
                 }
 
@@ -245,7 +241,6 @@ public class JoyentMethod {
                 }
                 catch( IOException e ) {
                     logger.error("Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                    e.printStackTrace();
                     throw new CloudException(e);
                 }
                 return json;
@@ -299,7 +294,6 @@ public class JoyentMethod {
             }
             catch( IOException e ) {
                 logger.error("I/O error from server communications: " + e.getMessage());
-                e.printStackTrace();
                 throw new InternalException(e);
             }
             int code = response.getStatusLine().getStatusCode();
@@ -326,7 +320,6 @@ public class JoyentMethod {
                 }
                 catch( IOException e ) {
                     logger.error("Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                    e.printStackTrace();
                     throw new CloudException(e);
                 }
                 JoyentException.ExceptionItems items = JoyentException.parseException(code, json);
@@ -350,7 +343,6 @@ public class JoyentMethod {
                 }
                 catch( IOException e ) {
                     logger.error("doGetStream(): Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                    e.printStackTrace();
                     throw new CloudException(e);
                 }
                 if( wire.isDebugEnabled() ) {
@@ -420,7 +412,6 @@ public class JoyentMethod {
             }
             catch( IOException e ) {
                 logger.error("I/O error from server communications: " + e.getMessage());
-                e.printStackTrace();
                 throw new InternalException(e);
             }
             int code = response.getStatusLine().getStatusCode();
@@ -444,7 +435,6 @@ public class JoyentMethod {
                 }
                 catch( IOException e ) {
                     logger.error("Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                    e.printStackTrace();
                     throw new CloudException(e);
                 }
 
@@ -477,7 +467,6 @@ public class JoyentMethod {
                     }
                     catch( IOException e ) {
                         logger.error("Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                        e.printStackTrace();
                         throw new CloudException(e);
                     }
                     if( json != null && !json.trim().equals("") ) {
@@ -552,7 +541,6 @@ public class JoyentMethod {
             }
             catch( IOException e ) {
                 logger.error("I/O error from server communications: " + e.getMessage());
-                e.printStackTrace();
                 throw new InternalException(e);
             }
             int code = response.getStatusLine().getStatusCode();
@@ -576,7 +564,6 @@ public class JoyentMethod {
                 }
                 catch( IOException e ) {
                     logger.error("Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                    e.printStackTrace();
                     throw new CloudException(e);
                 }
 
@@ -609,7 +596,6 @@ public class JoyentMethod {
                     }
                     catch( IOException e ) {
                         logger.error("Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                        e.printStackTrace();
                         throw new CloudException(e);
                     }
                     if( json != null && !json.trim().equals("") ) {
@@ -672,7 +658,6 @@ public class JoyentMethod {
             }
             catch( IOException e ) {
                 logger.error("I/O error from server communications: " + e.getMessage());
-                e.printStackTrace();
                 throw new InternalException(e);
             }
             int code = response.getStatusLine().getStatusCode();
@@ -706,7 +691,6 @@ public class JoyentMethod {
                 }
                 catch( IOException e ) {
                     logger.error("Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                    e.printStackTrace();
                     throw new CloudException(e);
                 }
                 JoyentException.ExceptionItems items = JoyentException.parseException(code, json);
@@ -739,7 +723,6 @@ public class JoyentMethod {
                     }
                     catch( IOException e ) {
                         logger.error("Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                        e.printStackTrace();
                         throw new CloudException(e);
                     }
                     if( json != null && !json.trim().equals("") ) {
@@ -808,7 +791,6 @@ public class JoyentMethod {
             }
             catch( IOException e ) {
                 logger.error("I/O error from server communications: " + e.getMessage());
-                e.printStackTrace();
                 throw new InternalException(e);
             }
             int code = response.getStatusLine().getStatusCode();
@@ -832,7 +814,6 @@ public class JoyentMethod {
                 }
                 catch( IOException e ) {
                     logger.error("Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                    e.printStackTrace();
                     throw new CloudException(e);
                 }
                 JoyentException.ExceptionItems items = JoyentException.parseException(code, json);
@@ -864,7 +845,6 @@ public class JoyentMethod {
                     }
                     catch( IOException e ) {
                         logger.error("Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                        e.printStackTrace();
                         throw new CloudException(e);
                     }
                     if( json != null && !json.trim().equals("") ) {
@@ -929,7 +909,6 @@ public class JoyentMethod {
             }
             catch( IOException e ) {
                 logger.error("I/O error from server communications: " + e.getMessage());
-                e.printStackTrace();
                 throw new InternalException(e);
             }
             int code = response.getStatusLine().getStatusCode();
@@ -953,7 +932,6 @@ public class JoyentMethod {
                 }
                 catch( IOException e ) {
                     logger.error("Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                    e.printStackTrace();
                     throw new CloudException(e);
                 }
                 JoyentException.ExceptionItems items = JoyentException.parseException(code, json);
@@ -985,7 +963,6 @@ public class JoyentMethod {
                     }
                     catch( IOException e ) {
                         logger.error("Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                        e.printStackTrace();
                         throw new CloudException(e);
                     }
                     if( json != null && !json.trim().equals("") ) {
@@ -1050,7 +1027,6 @@ public class JoyentMethod {
             }
             catch( IOException e ) {
                 logger.error("I/O error from server communications: " + e.getMessage());
-                e.printStackTrace();
                 throw new InternalException(e);
             }
             int code = response.getStatusLine().getStatusCode();
@@ -1085,7 +1061,6 @@ public class JoyentMethod {
                 }
                 catch( IOException e ) {
                     logger.error("Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                    e.printStackTrace();
                     throw new CloudException(e);
                 }
                 JoyentException.ExceptionItems items = JoyentException.parseException(code, json);
@@ -1117,7 +1092,6 @@ public class JoyentMethod {
                     }
                     catch( IOException e ) {
                         logger.error("Failed to read response error due to a cloud I/O error: " + e.getMessage());
-                        e.printStackTrace();
                         throw new CloudException(e);
                     }
                     if( json != null && !json.trim().equals("") ) {

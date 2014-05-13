@@ -193,7 +193,7 @@ public class SmartDataCenter extends AbstractCloud {
                 try {
                     return fmt.parse(time).getTime();
                 } catch (ParseException e2) {
-                    throw new CloudException("Could not parse timestamp: " + time);
+                    throw new CloudException("Could not parse timestamp: " + time, e2);
                 }
             }
         }
@@ -226,18 +226,12 @@ public class SmartDataCenter extends AbstractCloud {
                     if( e.getErrorType().equals(CloudErrorType.AUTHENTICATION) ) {
                         return null;
                     }
-                    logger.warn("Cloud error testing Joyent context: " + e.getMessage());
-                    if( logger.isTraceEnabled() ) {
-                        e.printStackTrace();
-                    }
+                    logger.warn("Cloud error testing Joyent context: " + e.getMessage(), e);
                 }
                 return null;
             }
             catch( Throwable t ) {
-                logger.warn("Failed to test Joyent connection context: " + t.getMessage());
-                if( logger.isTraceEnabled() ) {
-                    t.printStackTrace();
-                }
+                logger.warn("Failed to test Joyent connection context: " + t.getMessage(), t);
                 return null;
             }
         }
