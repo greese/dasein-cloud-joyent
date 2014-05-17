@@ -20,7 +20,6 @@
 package org.dasein.cloud.joyent.storage;
 
 import com.google.api.client.http.HttpResponseException;
-import com.google.common.base.Preconditions;
 import com.joyent.manta.client.MantaClient;
 import com.joyent.manta.client.MantaObject;
 import com.joyent.manta.exception.MantaCryptoException;
@@ -124,7 +123,6 @@ public class Manta implements BlobStoreSupport {
      */
     @Override
     public void clearBucket(@Nonnull String bucket) throws CloudException, InternalException {
-        Preconditions.checkNotNull(bucket, "Directory name is required");
         String directoryName = coerceToDirectory(bucket);
         try {
             mantaClient.delete(directoryName);
@@ -157,7 +155,6 @@ public class Manta implements BlobStoreSupport {
     @Nonnull
     @Override
     public Blob createBucket(@Nonnull String bucket, boolean findFreeName) throws InternalException, CloudException {
-        Preconditions.checkNotNull(bucket, "Directory name is required");
         try {
             mantaClient.putDirectory(coerceToDirectory(bucket), null);
         } catch (IOException e) {
@@ -178,7 +175,6 @@ public class Manta implements BlobStoreSupport {
      */
     @Override
     public boolean exists(@Nonnull String bucket) throws InternalException, CloudException {
-        Preconditions.checkNotNull(bucket, "Directory name is required");
         boolean exists = false;
         try {
             mantaClient.head(coerceToDirectory(bucket));
@@ -213,7 +209,6 @@ public class Manta implements BlobStoreSupport {
     @Override
     public Blob getBucket(@Nonnull String bucketName) throws InternalException, CloudException {
         MantaObject mantaObject;
-        Preconditions.checkNotNull(bucketName, "Directory name is required");
         Blob bucket = null;
         try {
             mantaObject = mantaClient.head(coerceToDirectory(bucketName));
@@ -268,7 +263,6 @@ public class Manta implements BlobStoreSupport {
     public @Nullable Blob getObject(@Nullable String bucketName, @Nonnull String objectName)
             throws InternalException, CloudException {
         checkBucket(bucketName);
-        Preconditions.checkNotNull(objectName, "Object name is required");
         Blob result = null;
         try {
             MantaObject mantaObject = loadMantaObjectMetadata(bucketName, objectName);
@@ -521,7 +515,6 @@ public class Manta implements BlobStoreSupport {
      */
     @Override
     public void removeBucket(@Nonnull String bucket) throws CloudException, InternalException {
-        Preconditions.checkNotNull(bucket, "Bucket is required");
         String path = coerceToDirectory(bucket);
         try {
             mantaClient.delete(path);
@@ -552,7 +545,6 @@ public class Manta implements BlobStoreSupport {
      */
     @Override
     public void removeObject(@Nullable String bucket, @Nonnull String object) throws CloudException, InternalException {
-        Preconditions.checkNotNull(object, "Manta object is required");
         checkBucket(bucket);
         try {
             mantaClient.delete(coerceToDirectory(bucket) + parseObjectName(object));
@@ -592,9 +584,6 @@ public class Manta implements BlobStoreSupport {
     @Override
     public void renameObject(@Nullable String bucket, @Nonnull String oldName, @Nonnull String newName) throws
             CloudException, InternalException {
-        Preconditions.checkNotNull(oldName, "Old name is required");
-        Preconditions.checkNotNull(newName, "New name is required");
-        Preconditions.checkNotNull(bucket, "Directory is required");
         String path = coerceToDirectory(bucket);
         String linkPath = path + parseObjectName(newName);
         String objPath = path + parseObjectName(oldName);
@@ -622,8 +611,6 @@ public class Manta implements BlobStoreSupport {
     @Override
     public Blob upload(@Nonnull File sourceFile, @Nullable String bucket, @Nonnull String objectName) throws
             CloudException, InternalException {
-        Preconditions.checkNotNull(sourceFile, "Source file is required");
-        Preconditions.checkNotNull(objectName, "Object name is required");
         checkBucket(bucket);
         String pathToDir = coerceToDirectory(bucket);
         String validObjectName = parseObjectName(objectName);
@@ -647,7 +634,7 @@ public class Manta implements BlobStoreSupport {
     }
 
     private void checkBucket(@Nullable String bucket) throws OperationNotSupportedException {
-        if (bucket == null || bucket.isEmpty()) {
+        if (bucket.trim().isEmpty()) {
             throw new OperationNotSupportedException("Root objects are not supported");
         }
     }
@@ -703,8 +690,6 @@ public class Manta implements BlobStoreSupport {
     @Override
     public FileTransfer download(final @Nullable String bucket, @Nonnull final String objectName, final @Nonnull File toFile)
             throws InternalException, CloudException {
-        Preconditions.checkNotNull(objectName, "Object name is required");
-        Preconditions.checkNotNull(toFile, "File is required");
         checkBucket(bucket);
         final FileTransfer fileTransfer = new FileTransfer();
 
