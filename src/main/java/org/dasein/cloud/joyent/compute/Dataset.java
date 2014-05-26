@@ -184,7 +184,8 @@ public class Dataset extends AbstractImageSupport {
                 ArrayList<MachineImage> images = new ArrayList<MachineImage>();
 
                 for( int i=0; i<arr.length(); i++ ) {
-                    MachineImage image = toMachineImage(arr.getJSONObject(i));
+                    JSONObject ob = arr.getJSONObject(i);
+                    MachineImage image = toMachineImage(ob);
 
                     if( image != null && options.matches(image) ) {
                         images.add(image);
@@ -346,6 +347,15 @@ public class Dataset extends AbstractImageSupport {
             }
             if( json.has("public")) {
                 owner = json.getBoolean("public") ? "--joyent--" : getContext().getAccountNumber();
+            }
+            if( json.has("requirements") ) {
+                JSONObject requirements = json.getJSONObject("requirements");
+                if( requirements.length() > 0 ) {
+                    // TODO: Allow image requirements in MachineImage
+                    // MachineImage does not currently allow requirements to be communicated,
+                    // therefore we will not be able to satisfy them.
+                    return null;
+                }
             }
         }
         catch( JSONException e ) {

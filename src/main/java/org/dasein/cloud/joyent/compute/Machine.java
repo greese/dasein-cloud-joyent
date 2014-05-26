@@ -177,12 +177,18 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
         if( userScript != null ) {
             post.put("metadata.user-script", userScript);
         }
+        if( withLaunchOptions.getHostName() != null ) {
+            String name = validateName(withLaunchOptions.getHostName());
 
-        String name = validateName(withLaunchOptions.getHostName());
-
-        post.put("name", name);
-        post.put("package", withLaunchOptions.getStandardProductId());
-        post.put("dataset", withLaunchOptions.getMachineImageId());
+            post.put("name", name);
+        }
+        // Joyent will use datacenter default package/dataset if missing
+        if( withLaunchOptions.getStandardProductId() != null ) {
+            post.put("package", withLaunchOptions.getStandardProductId());
+        }
+        if( withLaunchOptions.getMachineImageId() != null ) {
+            post.put("dataset", withLaunchOptions.getMachineImageId());
+        }
 
         Map<String,Object> meta = withLaunchOptions.getMetaData();
 
@@ -272,6 +278,11 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
 
     @Override
     public @Nonnull Iterable<VirtualMachineProduct> listProducts(@Nonnull Architecture architecture) throws InternalException, CloudException {
+        return listProducts(architecture, null);
+    }
+
+    @Override
+    public @Nonnull Iterable<VirtualMachineProduct> listProducts(@Nonnull Architecture architecture, String preferedDataCenterId) throws InternalException, CloudException {
         JoyentMethod method = new JoyentMethod(provider);
         String json = method.doGetJson(provider.getEndpoint(), "packages");
         
@@ -295,9 +306,19 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
                 if( ob.has("disk") ) {
                     prd.setRootVolumeSize(new Storage<Megabyte>(ob.getInt("disk"), Storage.MEGABYTE));
                 }
-                prd.setCpuCount(1);
-                prd.setDescription(prd.getName());
-                prd.setProviderProductId(prd.getName());
+                if( ob.has("vcpus") ) {
+                    prd.setCpuCount(ob.getInt("vcpus"));
+                }
+                else {
+                    prd.setCpuCount(1);
+                }
+                if( ob.has("description") ) {
+                    prd.setDescription(ob.getString("description"));
+                }
+                else {
+                    prd.setDescription(prd.getName());
+                }
+                prd.setProviderProductId(ob.getString("id"));
                 products.add(prd);
             }
             return products;
