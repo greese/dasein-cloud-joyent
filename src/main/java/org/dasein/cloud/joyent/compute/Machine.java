@@ -273,6 +273,7 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
 
     @Override
     public @Nonnull Iterable<String> listFirewalls(@Nonnull String vmId) throws InternalException, CloudException {
+        // TODO
         return Collections.emptyList();
     }
 
@@ -653,7 +654,11 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
             }
         }
     }
-    
+
+    /*
+    TODO: fix
+    @see org.dasein.cloud.joyent.compute.MachineCapabilities#getVirtualMachineNamingConstraints
+    */
     private String validateName(String originalName) {
         StringBuilder name = new StringBuilder();
         

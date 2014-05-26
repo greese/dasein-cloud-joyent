@@ -54,7 +54,7 @@ import javax.annotation.Nullable;
 
 public class Dataset extends AbstractImageSupport {
     private SmartDataCenter provider;
-    private DatasetCapabilities capabilities;
+    private volatile transient DatasetCapabilities capabilities;
 
     Dataset(@Nonnull SmartDataCenter sdc) {
         super(sdc);
@@ -141,22 +141,8 @@ public class Dataset extends AbstractImageSupport {
     }
 
     @Override
-    public @Nonnull String getProviderTermForImage(@Nonnull Locale locale, @Nonnull ImageClass cls) {
-        return "image";
-    }
-
-    @Override
-    public boolean hasPublicLibrary() {
-        return true;
-    }
-
-    @Override
-    public @Nonnull Requirement identifyLocalBundlingRequirement() throws CloudException, InternalException {
-        return getCapabilities().identifyLocalBundlingRequirement();
-    }
-
-    @Override
     public boolean isImageSharedWithPublic(@Nonnull String machineImageId) throws CloudException, InternalException {
+        // TODO: true???
         return true;
     }
 
@@ -203,28 +189,9 @@ public class Dataset extends AbstractImageSupport {
     }
 
     @Override
-    public @Nonnull Iterable<MachineImageFormat> listSupportedFormats() throws CloudException, InternalException {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public @Nonnull Iterable<MachineImageFormat> listSupportedFormatsForBundling() throws CloudException, InternalException {
-        return Collections.emptyList();
-    }
-
-    @Override
     public @Nonnull Iterable<String> listShares(@Nonnull String forMachineImageId) throws CloudException, InternalException {
+        // TODO
         return Collections.emptyList();
-    }
-
-    @Override
-    public @Nonnull Iterable<ImageClass> listSupportedImageClasses() throws CloudException, InternalException {
-        return Collections.singletonList(ImageClass.MACHINE);
-    }
-
-    @Override
-    public @Nonnull Iterable<MachineImageType> listSupportedImageTypes() throws CloudException, InternalException {
-        return Collections.singletonList(MachineImageType.VOLUME);
     }
 
     @Override
@@ -274,36 +241,6 @@ public class Dataset extends AbstractImageSupport {
         catch( JSONException e ) {
             throw new CloudException(e);
         }
-    }
-
-    @Override
-    public boolean supportsCustomImages() {
-        return true;
-    }
-
-    @Override
-    public boolean supportsDirectImageUpload() throws CloudException, InternalException {
-        return false;
-    }
-
-    @Override
-    public boolean supportsImageCapture(@Nonnull MachineImageType type) throws CloudException, InternalException {
-        return true;
-    }
-
-    @Override
-    public boolean supportsImageSharing() {
-        return false;
-    }
-
-    @Override
-    public boolean supportsImageSharingWithPublic() {
-        return false;
-    }
-
-    @Override
-    public boolean supportsPublicLibrary(@Nonnull ImageClass cls) throws CloudException, InternalException {
-        return ImageClass.MACHINE.equals(cls);
     }
 
     private @Nullable MachineImage toMachineImage(@Nullable JSONObject json) throws CloudException, InternalException {
