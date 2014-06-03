@@ -27,7 +27,6 @@ import java.util.TimeZone;
 
 import org.apache.log4j.Logger;
 import org.dasein.cloud.*;
-import org.dasein.cloud.framework.FrameworkServices;
 import org.dasein.cloud.joyent.compute.JoyentComputeServices;
 import org.dasein.cloud.joyent.storage.MantaStorageServices;
 import org.dasein.cloud.storage.StorageServices;
