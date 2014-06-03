@@ -212,7 +212,7 @@ public class SmartDataCenter extends AbstractCloud {
                 if( ctx == null ) {
                     return null;
                 }
-                String pk = new String(ctx.getAccessPublic(), "utf-8");
+                String pk = ctx.getAccountNumber();
 
                 JoyentMethod method = new JoyentMethod(this);
                 
