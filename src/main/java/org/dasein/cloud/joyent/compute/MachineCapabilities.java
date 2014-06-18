@@ -196,4 +196,9 @@ public class MachineCapabilities extends AbstractCapabilities<SmartDataCenter> i
     public Iterable<Architecture> listSupportedArchitectures() throws InternalException, CloudException {
         return Collections.singletonList(Architecture.I64);
     }
+
+    @Override
+    public boolean supportsSpotVirtualMachines() throws InternalException, CloudException {
+        return false;
+    }
 }
