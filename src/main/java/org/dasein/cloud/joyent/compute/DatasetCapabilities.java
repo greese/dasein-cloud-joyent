@@ -19,14 +19,12 @@
 
 package org.dasein.cloud.joyent.compute;
 
-import org.dasein.cloud.AbstractCapabilities;
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.Requirement;
+import org.dasein.cloud.*;
 import org.dasein.cloud.compute.*;
 import org.dasein.cloud.joyent.SmartDataCenter;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Locale;
 
@@ -63,6 +61,11 @@ public class DatasetCapabilities extends AbstractCapabilities<SmartDataCenter> i
     @Override
     public String getProviderTermForCustomImage(@Nonnull Locale locale, @Nonnull ImageClass cls) {
         return getProviderTermForImage(locale, cls);
+    }
+
+    @Nullable @Override
+    public VisibleScope getImageVisibleScope() {
+        return null;
     }
 
     @Nonnull

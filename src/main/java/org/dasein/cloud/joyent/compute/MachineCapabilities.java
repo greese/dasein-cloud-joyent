@@ -122,6 +122,18 @@ public class MachineCapabilities extends AbstractCapabilities<SmartDataCenter> i
         return NamingConstraints.getAlphaNumeric(1, 255).constrainedBy('-', '_');
     }
 
+    @Nullable
+    @Override
+    public VisibleScope getVirtualMachineVisibleScope() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public VisibleScope getVirtualMachineProductVisibleScope() {
+        return null;
+    }
+
     @Nonnull
     @Override
     public Requirement identifyDataCenterLaunchRequirement() throws CloudException, InternalException {
