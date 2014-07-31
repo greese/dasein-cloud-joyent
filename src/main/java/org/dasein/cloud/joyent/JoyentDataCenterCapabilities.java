@@ -26,6 +26,11 @@ public class JoyentDataCenterCapabilities extends AbstractCapabilities<SmartData
     }
 
     @Override
+    public boolean supportsAffinityGroups() {
+        return false;
+    }
+
+    @Override
     public boolean supportsResourcePools() {
         return false;
     }
