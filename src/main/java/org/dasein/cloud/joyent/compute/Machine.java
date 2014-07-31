@@ -310,7 +310,10 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
                 if( ob.has("vcpus") ) {
                     prd.setCpuCount(ob.getInt("vcpus"));
                 }
-                else {
+                // SmartOS products are returned with 0 vCPUs as this metric doesn't apply
+                // to them according to Joyent. In SmartOS you get some burstable capacity.
+                // We will set them to 1 CPU anyway, as zero CPU is no CPU.
+                if( prd.getCpuCount() == 0 ) {
                     prd.setCpuCount(1);
                 }
                 if( ob.has("description") ) {
