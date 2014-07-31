@@ -142,8 +142,8 @@ public class Dataset extends AbstractImageSupport {
 
     @Override
     public boolean isImageSharedWithPublic(@Nonnull String machineImageId) throws CloudException, InternalException {
-        // TODO: true???
-        return true;
+        // Joyent 7.1 doesn't support image sharing
+        return false;
     }
 
     @Override
@@ -190,7 +190,7 @@ public class Dataset extends AbstractImageSupport {
 
     @Override
     public @Nonnull Iterable<String> listShares(@Nonnull String forMachineImageId) throws CloudException, InternalException {
-        // TODO
+        // Joyent 7.1 doesn't support image sharing
         return Collections.emptyList();
     }
 
