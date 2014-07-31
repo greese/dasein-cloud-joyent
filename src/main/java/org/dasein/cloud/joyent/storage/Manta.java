@@ -286,8 +286,8 @@ public class Manta implements BlobStoreSupport {
         Blob result = null;
         try {
             MantaObject mantaObject = loadMantaObjectMetadata(bucketName, objectName);
-            String dirName = parsePath(mantaObject.getPath());
-            result = Blob.getInstance(regionId, "", dirName, objectName, new Date().getTime(),
+//            String dirName = parsePath(mantaObject.getPath());
+            result = Blob.getInstance(regionId, "", bucketName, objectName, new Date().getTime(),
                     new Storage<org.dasein.util.uom.storage.Byte>(getContentLength(mantaObject), Storage.BYTE));
         } catch (MantaCryptoException e) {
             throw new InternalException(e);
@@ -476,7 +476,7 @@ public class Manta implements BlobStoreSupport {
                 result.add(Blob.getInstance(regionId, "", dirName, new Date().getTime()));
             } else {
                 String objectName = parseObjectName(mantaObject.getPath());
-                result.add(Blob.getInstance(regionId, "", dirName, objectName, new Date().getTime(),
+                result.add(Blob.getInstance(regionId, "", bucket, objectName, new Date().getTime(),
                         new Storage<org.dasein.util.uom.storage.Byte>(mantaObject.getContentLength(), Storage.BYTE)
                 ));
             }
