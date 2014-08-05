@@ -27,16 +27,7 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.dasein.cloud.*;
-import org.dasein.cloud.compute.AbstractVMSupport;
-import org.dasein.cloud.compute.Architecture;
-import org.dasein.cloud.compute.ImageClass;
-import org.dasein.cloud.compute.MachineImage;
-import org.dasein.cloud.compute.Platform;
-import org.dasein.cloud.compute.VirtualMachine;
-import org.dasein.cloud.compute.VirtualMachineCapabilities;
-import org.dasein.cloud.compute.VirtualMachineProduct;
-import org.dasein.cloud.compute.VMLaunchOptions;
-import org.dasein.cloud.compute.VmState;
+import org.dasein.cloud.compute.*;
 import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.joyent.JoyentMethod;
 import org.dasein.cloud.joyent.SmartDataCenter;
@@ -277,13 +268,20 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
         return Collections.emptyList();
     }
 
+
+
     @Override
-    public @Nonnull Iterable<VirtualMachineProduct> listProducts(@Nonnull Architecture architecture) throws InternalException, CloudException {
-        return listProducts(architecture, null);
+    public @Nonnull Iterable<VirtualMachineProduct> listProducts( VirtualMachineProductFilterOptions options ) throws InternalException, CloudException {
+        return listProducts(options, null);
     }
 
     @Override
-    public @Nonnull Iterable<VirtualMachineProduct> listProducts(@Nonnull Architecture architecture, String preferedDataCenterId) throws InternalException, CloudException {
+    public @Nonnull Iterable<VirtualMachineProduct> listProducts(@Nonnull Architecture architecture) throws InternalException, CloudException {
+        return listProducts(null, architecture);
+    }
+
+    @Override
+    public @Nonnull Iterable<VirtualMachineProduct> listProducts(VirtualMachineProductFilterOptions options, Architecture architecture) throws InternalException, CloudException {
         JoyentMethod method = new JoyentMethod(provider);
         String json = method.doGetJson(provider.getEndpoint(), "packages");
         
@@ -323,7 +321,13 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
                     prd.setDescription(prd.getName());
                 }
                 prd.setProviderProductId(ob.getString("id"));
-                products.add(prd);
+                if( options != null) {
+                    if( options.matches(prd) )
+                        products.add(prd);
+                }
+                else {
+                    products.add(prd);
+                }
             }
             return products;
         }

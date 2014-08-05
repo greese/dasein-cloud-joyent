@@ -34,4 +34,9 @@ public class JoyentDataCenterCapabilities extends AbstractCapabilities<SmartData
     public boolean supportsResourcePools() {
         return false;
     }
+
+    @Override
+    public boolean supportsStoragePools() {
+        return false;
+    }
 }
