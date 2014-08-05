@@ -19,28 +19,11 @@
 
 package org.dasein.cloud.joyent.compute;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Locale;
-
 import org.dasein.cloud.AsynchronousTask;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
-import org.dasein.cloud.Requirement;
-import org.dasein.cloud.compute.AbstractImageSupport;
-import org.dasein.cloud.compute.Architecture;
-import org.dasein.cloud.compute.ImageCapabilities;
-import org.dasein.cloud.compute.ImageClass;
-import org.dasein.cloud.compute.ImageCreateOptions;
-import org.dasein.cloud.compute.ImageFilterOptions;
-import org.dasein.cloud.compute.MachineImage;
-import org.dasein.cloud.compute.MachineImageFormat;
-import org.dasein.cloud.compute.MachineImageState;
-import org.dasein.cloud.compute.MachineImageType;
-import org.dasein.cloud.compute.Platform;
-import org.dasein.cloud.compute.VirtualMachine;
+import org.dasein.cloud.compute.*;
 import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.joyent.JoyentMethod;
 import org.dasein.cloud.joyent.SmartDataCenter;
@@ -51,12 +34,13 @@ import org.json.JSONObject;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.*;
 
 public class Dataset extends AbstractImageSupport {
-    private SmartDataCenter provider;
+    private                    SmartDataCenter     provider;
     private volatile transient DatasetCapabilities capabilities;
 
-    Dataset(@Nonnull SmartDataCenter sdc) {
+    Dataset( @Nonnull SmartDataCenter sdc ) {
         super(sdc);
         provider = sdc;
     }
@@ -70,16 +54,16 @@ public class Dataset extends AbstractImageSupport {
     }
 
     @Override
-    protected MachineImage capture(@Nonnull ImageCreateOptions options, @Nullable AsynchronousTask<MachineImage> task) throws CloudException, InternalException {
+    protected MachineImage capture( @Nonnull ImageCreateOptions options, @Nullable AsynchronousTask<MachineImage> task ) throws CloudException, InternalException {
         APITrace.begin(provider, "Image.capture");
         try {
             VirtualMachine vm;
 
             vm = provider.getComputeServices().getVirtualMachineSupport().getVirtualMachine(options.getVirtualMachineId());
-            if (vm == null) {
+            if( vm == null ) {
                 throw new CloudException("Virtual machine not found: " + options.getVirtualMachineId());
             }
-            if (task != null) {
+            if( task != null ) {
                 task.setStartTime(System.currentTimeMillis());
             }
 
@@ -87,11 +71,11 @@ public class Dataset extends AbstractImageSupport {
             String imageName = options.getName();
             String version = "1.0.0";
 
-            if (!getCapabilities().canImage(vm.getCurrentState())) {
-                throw new CloudException("Server must be stopped before making an image - current state: "+vm.getCurrentState());
+            if( !getCapabilities().canImage(vm.getCurrentState()) ) {
+                throw new CloudException("Server must be stopped before making an image - current state: " + vm.getCurrentState());
             }
             JoyentMethod method = new JoyentMethod(provider);
-            HashMap<String,Object> post = new HashMap<String,Object>();
+            Map<String, Object> post = new HashMap<String, Object>();
 
             post.put("machine", vmID);
             post.put("name", imageName);
@@ -103,23 +87,21 @@ public class Dataset extends AbstractImageSupport {
 
             MachineImage img;
             try {
-                img =  toMachineImage(new JSONObject(json));
-            }
-            catch( JSONException e ) {
+                img = toMachineImage(new JSONObject(json));
+            } catch( JSONException e ) {
                 throw new CloudException(e);
             }
             if( task != null ) {
                 task.completeWithResult(img);
             }
             return img;
-        }
-        finally {
+        } finally {
             APITrace.end();
         }
     }
 
     @Override
-    public MachineImage getImage(@Nonnull String providerImageId) throws CloudException, InternalException {
+    public MachineImage getImage( @Nonnull String providerImageId ) throws CloudException, InternalException {
         ProviderContext ctx = provider.getContext();
 
         if( ctx == null ) {
@@ -134,16 +116,34 @@ public class Dataset extends AbstractImageSupport {
                 return null;
             }
             return toMachineImage(new JSONObject(json));
-        }
-        catch( JSONException e ) {
+        } catch( JSONException e ) {
             throw new CloudException(e);
         }
     }
 
     @Override
-    public boolean isImageSharedWithPublic(@Nonnull String machineImageId) throws CloudException, InternalException {
-        // TODO: true???
-        return true;
+    public boolean isImageSharedWithPublic( @Nonnull String machineImageId ) throws CloudException, InternalException {
+        ProviderContext ctx = provider.getContext();
+
+        if( ctx == null ) {
+            throw new CloudException("No context has been defined for this request");
+        }
+        JoyentMethod method = new JoyentMethod(provider);
+
+        try {
+            String json = method.doGetJson(provider.getEndpoint(), "images/" + machineImageId);
+
+            if( json != null ) {
+                JSONObject jsonObject = new JSONObject(json);
+                if( jsonObject.has("public") ) {
+                    return jsonObject.getBoolean("public");
+                }
+            }
+
+            return false;
+        } catch( JSONException e ) {
+            throw new CloudException(e);
+        }
     }
 
     @Override
@@ -155,7 +155,7 @@ public class Dataset extends AbstractImageSupport {
     }
 
     @Override
-    public @Nonnull Iterable<MachineImage> listImages(@Nullable ImageFilterOptions options) throws CloudException, InternalException {
+    public @Nonnull Iterable<MachineImage> listImages( @Nullable ImageFilterOptions options ) throws CloudException, InternalException {
         APITrace.begin(provider, "Image.listImages");
         try {
             ProviderContext ctx = provider.getContext();
@@ -167,9 +167,9 @@ public class Dataset extends AbstractImageSupport {
 
             try {
                 JSONArray arr = new JSONArray(method.doGetJson(provider.getEndpoint(), "images?public=false"));
-                ArrayList<MachineImage> images = new ArrayList<MachineImage>();
+                List<MachineImage> images = new ArrayList<MachineImage>();
 
-                for( int i=0; i<arr.length(); i++ ) {
+                for( int i = 0; i < arr.length(); i++ ) {
                     JSONObject ob = arr.getJSONObject(i);
                     MachineImage image = toMachineImage(ob);
 
@@ -178,46 +178,43 @@ public class Dataset extends AbstractImageSupport {
                     }
                 }
                 return images;
-            }
-            catch( JSONException e ) {
+            } catch( JSONException e ) {
                 throw new CloudException(e);
             }
-        }
-        finally {
+        } finally {
             APITrace.end();
         }
     }
 
     @Override
-    public @Nonnull Iterable<String> listShares(@Nonnull String forMachineImageId) throws CloudException, InternalException {
-        // TODO
+    public @Nonnull Iterable<String> listShares( @Nonnull String forMachineImageId ) throws CloudException, InternalException {
+        // Joyent 7.1 doesn't support image sharing
         return Collections.emptyList();
     }
 
     @Override
-    public @Nonnull String[] mapServiceAction(@Nonnull ServiceAction action) {
+    public @Nonnull String[] mapServiceAction( @Nonnull ServiceAction action ) {
         return new String[0];
     }
 
     @Override
-    public void remove(@Nonnull String providerImageId, boolean checkState) throws CloudException, InternalException {
+    public void remove( @Nonnull String providerImageId, boolean checkState ) throws CloudException, InternalException {
         APITrace.begin(provider, "Image.remove");
         try {
             ProviderContext ctx = getContext();
-            if (ctx == null) {
+            if( ctx == null ) {
                 throw new CloudException("No context has been defined for this request");
             }
             JoyentMethod method = new JoyentMethod(provider);
 
-            method.doDelete(provider.getEndpoint(), "images/"+providerImageId);
-        }
-        finally {
+            method.doDelete(provider.getEndpoint(), "images/" + providerImageId);
+        } finally {
             APITrace.end();
         }
     }
 
     @Override
-    public @Nonnull Iterable<MachineImage> searchPublicImages(@Nonnull ImageFilterOptions options) throws CloudException, InternalException {
+    public @Nonnull Iterable<MachineImage> searchPublicImages( @Nonnull ImageFilterOptions options ) throws CloudException, InternalException {
         ProviderContext ctx = provider.getContext();
 
         if( ctx == null ) {
@@ -227,9 +224,9 @@ public class Dataset extends AbstractImageSupport {
 
         try {
             JSONArray arr = new JSONArray(method.doGetJson(provider.getEndpoint(), "images?public=true"));
-            ArrayList<MachineImage> images = new ArrayList<MachineImage>();
+            List<MachineImage> images = new ArrayList<MachineImage>();
 
-            for( int i=0; i<arr.length(); i++ ) {
+            for( int i = 0; i < arr.length(); i++ ) {
                 MachineImage image = toMachineImage(arr.getJSONObject(i));
 
                 if( image != null && options.matches(image) ) {
@@ -237,13 +234,12 @@ public class Dataset extends AbstractImageSupport {
                 }
             }
             return images;
-        }
-        catch( JSONException e ) {
+        } catch( JSONException e ) {
             throw new CloudException(e);
         }
     }
 
-    private @Nullable MachineImage toMachineImage(@Nullable JSONObject json) throws CloudException, InternalException {
+    private @Nullable MachineImage toMachineImage( @Nullable JSONObject json ) throws CloudException {
         if( json == null ) {
             return null;
         }
@@ -268,7 +264,7 @@ public class Dataset extends AbstractImageSupport {
                 description = json.getString("description");
             }
             if( json.has("os") ) {
-                String os = (name == null ? json.getString("os") : name + " " + json.getString("os"));
+                String os = ( name == null ? json.getString("os") : name + " " + json.getString("os") );
 
                 platform = Platform.guess(os);
                 if( os.contains("32") ) {
@@ -280,9 +276,9 @@ public class Dataset extends AbstractImageSupport {
             }
             if( json.has("version") ) {
                 version = json.getString("version");
-                name = name+":"+version;
+                name = name + ":" + version;
             }
-            if( json.has("public")) {
+            if( json.has("public") ) {
                 owner = json.getBoolean("public") ? "--joyent--" : getContext().getAccountNumber();
             }
             if( json.has("requirements") ) {
@@ -294,8 +290,7 @@ public class Dataset extends AbstractImageSupport {
                     return null;
                 }
             }
-        }
-        catch( JSONException e ) {
+        } catch( JSONException e ) {
             throw new CloudException(e);
         }
         if( imageId == null ) {

@@ -136,7 +136,7 @@ public class JoyentDataCenter implements DataCenterServices {
     }
 
     @Override
-    public Collection<ResourcePool> listResourcePools(String providerDataCenterId) throws InternalException, CloudException {
+    public @Nonnull Collection<ResourcePool> listResourcePools(String providerDataCenterId) throws InternalException, CloudException {
         return Collections.emptyList();
     }
 
@@ -146,7 +146,7 @@ public class JoyentDataCenter implements DataCenterServices {
     }
 
     @Override
-    public Collection<StoragePool> listStoragePools() throws InternalException, CloudException {
+    public @Nonnull Collection<StoragePool> listStoragePools() throws InternalException, CloudException {
         return Collections.emptyList();
     }
 }

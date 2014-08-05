@@ -48,7 +48,7 @@ public class DatasetCapabilities extends AbstractCapabilities<SmartDataCenter> i
 
     @Override
     public boolean canImage(@Nonnull VmState fromState) throws CloudException, InternalException {
-        return fromState.equals(VmState.STOPPED);
+        return VmState.RUNNING.equals(fromState) || VmState.STOPPED.equals(fromState);
     }
 
     @Nonnull
