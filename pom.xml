@@ -4,7 +4,7 @@
 
     <groupId>org.dasein</groupId>
     <artifactId>dasein-cloud-joyent</artifactId>
-    <version>2014.07.1-SNAPSHOT</version>
+    <version>2014.08.1</version>
 
     <name>Dasein Cloud Joyent</name>
     <description>Native API implementation for the Joyent API</description>
@@ -48,7 +48,7 @@
         <dependency>
             <groupId>org.dasein</groupId>
             <artifactId>dasein-cloud-core</artifactId>
-            <version>2014.07.1-SNAPSHOT</version>
+            <version>2014.08.1</version>
             <scope>compile</scope>
             <optional>false</optional>
         </dependency>
@@ -75,7 +75,7 @@
         <dependency>
             <groupId>org.dasein</groupId>
             <artifactId>dasein-cloud-test</artifactId>
-            <version>2014.07.1-SNAPSHOT</version>
+            <version>2014.08.1</version>
             <scope>test</scope>
             <optional>false</optional>
             <exclusions>
