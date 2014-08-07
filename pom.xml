@@ -4,7 +4,7 @@
 
     <groupId>org.dasein</groupId>
     <artifactId>dasein-cloud-joyent</artifactId>
-    <version>2014.08.1</version>
+    <version>2014.08.1-SNAPSHOT</version>
 
     <name>Dasein Cloud Joyent</name>
     <description>Native API implementation for the Joyent API</description>
@@ -226,11 +226,11 @@
                             <value>${proxyPort}</value>
                         </property>
                     </systemProperties>
-                    <includes>
-                        <include>**/TestSuite.java</include>
+                    <excludes>
+                        <exclude>**/TestSuite.java</exclude>
                         <!--            <include>**/storage/MantaStorageSmokeTest.java</include>
                                     <include>**/storage/MantaStorageTest.java</include> -->
-                    </includes>
+                    </excludes>
                     <argLine>-Dapple.awt.UIElement=true</argLine>
                 </configuration>
             </plugin>
