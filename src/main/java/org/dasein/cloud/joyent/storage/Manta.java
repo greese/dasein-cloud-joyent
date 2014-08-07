@@ -19,10 +19,9 @@
 
 package org.dasein.cloud.joyent.storage;
 
-import com.google.api.client.http.HttpResponseException;
-import com.google.common.base.Preconditions;
 import com.joyent.manta.client.MantaClient;
 import com.joyent.manta.client.MantaObject;
+import com.joyent.manta.exception.MantaClientHttpResponseException;
 import com.joyent.manta.exception.MantaCryptoException;
 import com.joyent.manta.exception.MantaObjectException;
 import org.apache.commons.io.FileUtils;
@@ -37,7 +36,6 @@ import org.dasein.cloud.storage.FileTransfer;
 import org.dasein.cloud.util.NamingConstraints;
 import org.dasein.util.uom.storage.*;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.*;
@@ -47,34 +45,55 @@ import java.util.*;
  * @author ilya.drabenia
  * @author anton.karavaev
  */
+
+/**
+ * Manta Object Store through Dasein vocabulary:
+ * -- Bucket - directory
+ * -- Object - file in the directory
+ * -- Buckets can be nested - subdirectories
+ * -- Root Objects are supported - root directory can contain files
+ */
 public class Manta implements BlobStoreSupport {
-    public static final String CUSTOM_PROP_STORAGE_URL = "STORAGE_URL";
-    public static final String CUSTOM_PROP_KEY_PATH = "KEY_PATH";
-    public static final String CUSTOM_PROP_KEY_FINGERPRINT = "KEY_FINGERPRINT";
-    private static final Logger logger = SmartDataCenter.getLogger(MantaStorageServices.class, "std");
+    public static final  String CUSTOM_PROP_STORAGE_URL = "storageUrl";
+    private static final Logger logger                  = SmartDataCenter.getLogger(MantaStorageServices.class, "std");
 
     private final CloudProvider provider;
-    private final MantaClient mantaClient;
-    private final String regionId;
-    private final String rootPath;
+    private final MantaClient   mantaClient;
+    private final String        regionId;
+    private final String        rootPath;
+    private final String        publicPath;
 
-    public Manta(CloudProvider provider) throws IOException, CloudException {
+    public Manta( CloudProvider provider ) throws IOException, CloudException {
         this.provider = provider;
         this.regionId = provider.getContext().getRegionId();
         this.mantaClient = getClient();
         // TODO: make configurable
-        this.rootPath = "/" + provider.getContext().getAccountNumber() + "/stor/";
+        this.rootPath = "/" + provider.getContext().getAccountNumber() + "/stor";
+        this.publicPath = "/" + provider.getContext().getAccountNumber() + "/public";
     }
 
     private MantaClient getClient() throws CloudException, IOException {
         ProviderContext context = provider.getContext();
 
-        final String LOGIN = context.getAccountNumber();
-        final String URL = (String) context.getCustomProperties().get(CUSTOM_PROP_STORAGE_URL);
-        final String KEY_PATH = (String) context.getCustomProperties().get(CUSTOM_PROP_KEY_PATH);
-        final String KEY_FINGERPRINT = (String) context.getCustomProperties().get(CUSTOM_PROP_KEY_FINGERPRINT);
+        List<ContextRequirements.Field> fields = provider.getContextRequirements().getConfigurableValues();
+        String keyName = "";
+        String privateKey = "";
+        char[] keyPassword = null;
+        for( ContextRequirements.Field f : fields ) {
+            if( f.type.equals(ContextRequirements.FieldType.KEYPAIR) ) {
+                byte[][] keyPair = ( byte[][] ) provider.getContext().getConfigurationValue(f);
+                keyName = new String(keyPair[0], "utf-8");
+                privateKey = new String(keyPair[1], "utf-8");
+            }
+            else if( f.type.equals(ContextRequirements.FieldType.PASSWORD) ) {
+                byte[] password = ( byte[] ) provider.getContext().getConfigurationValue(f);
+                if( password != null ) {
+                    keyPassword = new String(password, "utf-8").toCharArray();
+                }
+            }
+        }
 
-        return MantaClient.newInstance(URL, LOGIN, KEY_PATH, KEY_FINGERPRINT);
+        return MantaClient.newInstance(context.getCustomProperties().getProperty(CUSTOM_PROP_STORAGE_URL), context.getAccountNumber(), privateKey, keyName, keyPassword);
     }
 
     /**
@@ -124,23 +143,29 @@ public class Manta implements BlobStoreSupport {
      */
     @Override
     public void clearBucket(@Nonnull String bucket) throws CloudException, InternalException {
-        Preconditions.checkNotNull(bucket, "Directory name is required");
-        String directoryName = coerceToDirectory(bucket);
+        String path = toStoragePath(bucket, null, !isPublic(bucket, null));
+        boolean retryRecursively = false;
         try {
-            mantaClient.delete(directoryName);
+            mantaClient.delete(path);
         } catch (MantaCryptoException e) {
             throw new CloudException(e);
         } catch (IOException e) {
+            retryRecursively = true;
             logger.debug("Directory is not empty. Delete recursively.", e);
+        } catch( MantaClientHttpResponseException e ) {
+            retryRecursively = true;
+            logger.debug("Directory is not empty. Delete recursively.", e);
+        }
+        if( retryRecursively ) {
             // if bucket is not empty remove recursively
             try {
-                mantaClient.deleteRecursive(directoryName);
-            } catch (MantaCryptoException ex) {
-                throw new CloudException(ex);
-            } catch (HttpResponseException ex) {
-                throw new CloudException(ex);
-            } catch (IOException ex) {
-                throw new CloudException(ex);
+                mantaClient.deleteRecursive(path);
+            } catch( MantaCryptoException e ) {
+                throw new CloudException(e);
+            } catch( IOException e ) {
+                throw new CloudException(e);
+            } catch( MantaClientHttpResponseException e ) {
+                throw new CloudException(e);
             }
         }
     }
@@ -157,12 +182,13 @@ public class Manta implements BlobStoreSupport {
     @Nonnull
     @Override
     public Blob createBucket(@Nonnull String bucket, boolean findFreeName) throws InternalException, CloudException {
-        Preconditions.checkNotNull(bucket, "Directory name is required");
         try {
-            mantaClient.putDirectory(coerceToDirectory(bucket), null);
+            mantaClient.putDirectory(toStoragePath(bucket, null, true), null);
         } catch (IOException e) {
             throw new CloudException(e);
         } catch (MantaCryptoException e) {
+            throw new CloudException(e);
+        } catch( MantaClientHttpResponseException e ) {
             throw new CloudException(e);
         }
         return Blob.getInstance(regionId, "", bucket, new Date().getTime());
@@ -178,26 +204,27 @@ public class Manta implements BlobStoreSupport {
      */
     @Override
     public boolean exists(@Nonnull String bucket) throws InternalException, CloudException {
-        Preconditions.checkNotNull(bucket, "Directory name is required");
-        boolean exists = false;
-        try {
-            mantaClient.head(coerceToDirectory(bucket));
-            exists = true;
-        } catch (MantaCryptoException e) {
-            throw new CloudException(e);
-        } catch (HttpResponseException e) {
-            if (e.getStatusCode() != HttpStatus.SC_NOT_FOUND) {
-                if (e.getStatusCode() == HttpStatus.SC_FORBIDDEN) {
-                    exists = true;
-                } else {
-                    throw new CloudException(e);
-                }
-            }
-        } catch (IOException e) {
-            throw new CloudException(e);
-        }
-        return exists;
+        return getMantaObjectMetadata(bucket, null, true) != null
+                || getMantaObjectMetadata(bucket, null, false) != null;
     }
+
+//    private boolean checkMantaPathExists( @Nonnull String path ) throws InternalException, CloudException {
+//        try {
+//            mantaClient.head(path);
+//            return true;
+//        } catch (MantaCryptoException e) {
+//            throw new CloudException(e);
+//        } catch (MantaClientHttpResponseException e) {
+//            if (e.getStatusCode() != HttpStatus.SC_NOT_FOUND) {
+//                if (e.getStatusCode() != HttpStatus.SC_FORBIDDEN) {
+//                    throw new CloudException(e);
+//                }
+//            }
+//        } catch (IOException e) {
+//            throw new CloudException(e);
+//        }
+//        return false;
+//    }
 
     /**
      * Returns {@link Blob} representation of Manta directory. Null if a bucket name is not a directory or a bucket not found
@@ -209,25 +236,16 @@ public class Manta implements BlobStoreSupport {
      * @throws InternalException
      * @throws CloudException
      */
-    @Nullable
     @Override
-    public Blob getBucket(@Nonnull String bucketName) throws InternalException, CloudException {
-        MantaObject mantaObject;
-        Preconditions.checkNotNull(bucketName, "Directory name is required");
+    public @Nullable Blob getBucket(@Nonnull String bucketName) throws InternalException, CloudException {
         Blob bucket = null;
-        try {
-            mantaObject = mantaClient.head(coerceToDirectory(bucketName));
-            if (isDirectory(mantaObject)) {
-                bucket = Blob.getInstance(regionId, "", bucketName, new Date().getTime());
-            }
-        } catch (HttpResponseException e) {
-            if (e.getStatusCode() != HttpStatus.SC_NOT_FOUND) {
-                throw new CloudException(e);
-            }
-        } catch (IOException e) {
-            throw new CloudException(e);
-        } catch (MantaCryptoException e) {
-            throw new CloudException(e);
+        // check private bucket first
+        MantaObject mantaObject = getMantaObjectMetadata(bucketName, null);
+        if( mantaObject == null ) { // this is 404
+            return null;
+        }
+        if (isDirectory(mantaObject)) {
+            bucket = Blob.getInstance(regionId, "", bucketName, new Date().getTime());
         }
         return bucket;
     }
@@ -268,23 +286,12 @@ public class Manta implements BlobStoreSupport {
     public @Nullable Blob getObject(@Nullable String bucketName, @Nonnull String objectName)
             throws InternalException, CloudException {
         checkBucket(bucketName);
-        Preconditions.checkNotNull(objectName, "Object name is required");
-        Blob result = null;
-        try {
-            MantaObject mantaObject = loadMantaObjectMetadata(bucketName, objectName);
-            String dirName = parsePath(mantaObject.getPath());
-            result = Blob.getInstance(regionId, "", dirName, objectName, new Date().getTime(),
-                    new Storage<org.dasein.util.uom.storage.Byte>(getContentLength(mantaObject), Storage.BYTE));
-        } catch (MantaCryptoException e) {
-            throw new InternalException(e);
-        } catch (HttpResponseException e) {
-            if (e.getStatusCode() != HttpStatus.SC_NOT_FOUND) {
-                throw new CloudException(e);
-            }
-        } catch (IOException e) {
-            throw new CloudException(e);
+        MantaObject mantaObject = getMantaObjectMetadata(bucketName, objectName);
+        if(mantaObject == null) { // this is 404
+            return null;
         }
-        return result;
+        return Blob.getInstance(regionId, "", bucketName, objectName, new Date().getTime(),
+                new Storage<org.dasein.util.uom.storage.Byte>(getContentLength(mantaObject), Storage.BYTE));
     }
 
     /**
@@ -303,17 +310,9 @@ public class Manta implements BlobStoreSupport {
         checkBucket(bucketName);
         Storage<org.dasein.util.uom.storage.Byte> storage = null;
         if (objectName != null) {
-            try {
-                MantaObject mantaObject = loadMantaObjectMetadata(bucketName, objectName);
+            MantaObject mantaObject = getMantaObjectMetadata(bucketName, objectName);
+            if(mantaObject != null) {
                 storage = new Storage<org.dasein.util.uom.storage.Byte>(getContentLength(mantaObject), Storage.BYTE);
-            } catch (MantaCryptoException e) {
-                throw new InternalException(e);
-            } catch (HttpResponseException e) {
-                if (e.getStatusCode() != HttpStatus.SC_NOT_FOUND) {
-                    throw new CloudException(e);
-                }
-            } catch (IOException e) {
-                throw new CloudException(e);
             }
         }
         return storage;
@@ -322,13 +321,32 @@ public class Manta implements BlobStoreSupport {
     /**
      * Loads {@link MantaObject} without it`s content.
      *
-     * @param path path to object
-     * @param name object name
+     * @param bucket bucket name
+     * @param object object name
      * @return Manta object
      */
-    private @Nonnull MantaObject loadMantaObjectMetadata(@Nonnull String path, @Nonnull String name)
-            throws MantaCryptoException, IOException {
-        return mantaClient.head(coerceToDirectory(path) + parseObjectName(name));
+    private @Nullable MantaObject getMantaObjectMetadata( @Nullable String bucket, @Nullable String object, boolean isPrivate )
+            throws CloudException, InternalException {
+        try {
+            return mantaClient.head(toStoragePath(bucket, object, isPrivate));
+        } catch (MantaClientHttpResponseException e) {
+            if (e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
+                return null;
+            }
+            throw new CloudException(e);
+        } catch (IOException e) {
+            throw new CloudException(e);
+        } catch (MantaCryptoException e) {
+            throw new InternalException(e);
+        }
+    }
+
+    private @Nullable MantaObject getMantaObjectMetadata( @Nullable String bucket, @Nullable String object) throws CloudException, InternalException {
+        MantaObject o = getMantaObjectMetadata(bucket, object, true);
+        if( o == null ) {
+            o = getMantaObjectMetadata(bucket, object, false);
+        }
+        return o;
     }
 
     /**
@@ -368,15 +386,18 @@ public class Manta implements BlobStoreSupport {
         return 1000000;
     }
 
+    private final char[] BUCKET_CHARS = {'-', '.'};
+
     @Override
     public @Nonnull
     NamingConstraints getBucketNameRules() throws CloudException, InternalException {
-        return NamingConstraints.getAlphaNumeric(1, 255).lowerCaseOnly().limitedToLatin1().constrainedBy(new char[]{'-', '.'});
+        return NamingConstraints.getAlphaNumeric(1, 255).lowerCaseOnly().limitedToLatin1().constrainedBy(BUCKET_CHARS);
     }
 
+    private final char[] OBJECT_CHARS = {'-', '.', ',', '#', '+'};
     @Override
     public @Nonnull NamingConstraints getObjectNameRules() throws CloudException, InternalException {
-        return NamingConstraints.getAlphaNumeric(1, 255).lowerCaseOnly().limitedToLatin1().constrainedBy(new char[]{'-', '.', ',', '#', '+'});
+        return NamingConstraints.getAlphaNumeric(1, 255).lowerCaseOnly().limitedToLatin1().constrainedBy(OBJECT_CHARS);
     }
 
     /**
@@ -413,8 +434,7 @@ public class Manta implements BlobStoreSupport {
      */
     @Override
     public boolean isPublic(@Nullable String bucket, @Nullable String object) throws CloudException, InternalException {
-        String accountName = this.provider.getContext().getAccountNumber();
-        return rootPath.startsWith("/" + accountName + "/public");
+        return getMantaObjectMetadata(bucket, object, false) != null;
     }
 
     /**
@@ -428,13 +448,11 @@ public class Manta implements BlobStoreSupport {
     public boolean isSubscribed() throws CloudException, InternalException {
         try {
             mantaClient.listObjects(rootPath);
-
             return true;
-        } catch (HttpResponseException ex) {
+        } catch (MantaClientHttpResponseException ex) {
             if (ex.getStatusCode() == HttpStatus.SC_FORBIDDEN) {
                 return false;
             }
-
             throw new CloudException(ex);
         } catch (Exception ex) {
             throw new CloudException(ex);
@@ -448,21 +466,23 @@ public class Manta implements BlobStoreSupport {
         Collection<MantaObject> mantaObjects;
         Collection<Blob> result = new ArrayList<Blob>();
         try {
-            mantaObjects = mantaClient.listObjects(coerceToDirectory(bucket));
+            mantaObjects = mantaClient.listObjects(toStoragePath(bucket, null, !isPublic(bucket, null)));
         } catch (MantaCryptoException e) {
             throw new CloudException(e);
         } catch (IOException e) {
             throw new CloudException(e);
         } catch (MantaObjectException e) {
             throw new CloudException(e);
+        } catch( MantaClientHttpResponseException e ) {
+            throw new CloudException(e);
         }
         for (MantaObject mantaObject : mantaObjects) {
             String dirName = parsePath(mantaObject.getPath());
             if (mantaObject.isDirectory()) {
-                result.add(Blob.getInstance(regionId, "", dirName, new Date().getTime()));
+                result.add(Blob.getInstance(regionId, "", bucket, new Date().getTime()));
             } else {
                 String objectName = parseObjectName(mantaObject.getPath());
-                result.add(Blob.getInstance(regionId, "", dirName, objectName, new Date().getTime(),
+                result.add(Blob.getInstance(regionId, "", bucket, objectName, new Date().getTime(),
                         new Storage<org.dasein.util.uom.storage.Byte>(mantaObject.getContentLength(), Storage.BYTE)
                 ));
             }
@@ -471,7 +491,7 @@ public class Manta implements BlobStoreSupport {
     }
 
     /**
-     * Manta has to move directory to /:login/public to make directory public. It violates Daseign rules.
+     * Manta has to move directory to /:login/public to make directory public. It violates Dasein rules.
      * Method throws {@link OperationNotSupportedException}.
      *
      * @param bucket
@@ -484,7 +504,7 @@ public class Manta implements BlobStoreSupport {
     }
 
     /**
-     * Manta has to move directory to /:login/public to make directory public. It violates Daseign rules.
+     * Manta has to move directory to /:login/public to make directory public. It violates Dasein rules.
      * Method throws {@link OperationNotSupportedException}.
      *
      * @param bucket Manta does not support buckets. This parameter is ignored.
@@ -521,20 +541,26 @@ public class Manta implements BlobStoreSupport {
      */
     @Override
     public void removeBucket(@Nonnull String bucket) throws CloudException, InternalException {
-        Preconditions.checkNotNull(bucket, "Bucket is required");
-        String path = coerceToDirectory(bucket);
+        boolean retryRecursively = false;
+        String path = toStoragePath(bucket, null, !isPublic(bucket, null));
         try {
             mantaClient.delete(path);
         } catch (MantaCryptoException e) {
             throw new CloudException(e);
         } catch (IOException e) {
+            retryRecursively = true;
             logger.debug("Directory is not empty. Delete recursively.", e);
+        } catch( MantaClientHttpResponseException e ) {
+            retryRecursively = true;
+            logger.debug("Directory is not empty. Delete recursively.", e);
+        }
+        if( retryRecursively ) {
             // if bucket is not empty remove recursively
             try {
                 mantaClient.deleteRecursive(path);
             } catch (MantaCryptoException ex) {
                 throw new CloudException(ex);
-            } catch (HttpResponseException ex) {
+            } catch (MantaClientHttpResponseException ex) {
                 throw new CloudException(ex);
             } catch (IOException ex) {
                 throw new CloudException(ex);
@@ -552,14 +578,15 @@ public class Manta implements BlobStoreSupport {
      */
     @Override
     public void removeObject(@Nullable String bucket, @Nonnull String object) throws CloudException, InternalException {
-        Preconditions.checkNotNull(object, "Manta object is required");
         checkBucket(bucket);
         try {
-            mantaClient.delete(coerceToDirectory(bucket) + parseObjectName(object));
-        } catch (MantaCryptoException ex) {
-            throw new CloudException(ex);
-        } catch (IOException ex) {
-            throw new CloudException(ex);
+            mantaClient.delete(toStoragePath(bucket, object, !isPublic(bucket, object)));
+        } catch (MantaCryptoException e) {
+            throw new CloudException(e);
+        } catch (IOException e) {
+            throw new CloudException(e);
+        } catch( MantaClientHttpResponseException e ) {
+            throw new CloudException(e);
         }
     }
 
@@ -592,19 +619,18 @@ public class Manta implements BlobStoreSupport {
     @Override
     public void renameObject(@Nullable String bucket, @Nonnull String oldName, @Nonnull String newName) throws
             CloudException, InternalException {
-        Preconditions.checkNotNull(oldName, "Old name is required");
-        Preconditions.checkNotNull(newName, "New name is required");
-        Preconditions.checkNotNull(bucket, "Directory is required");
-        String path = coerceToDirectory(bucket);
+        String path = toStoragePath(bucket, oldName, !isPublic(bucket, oldName));
         String linkPath = path + parseObjectName(newName);
         String objPath = path + parseObjectName(oldName);
         try {
             mantaClient.putSnapLink(linkPath, objPath, null);
             mantaClient.delete(objPath);
-        } catch (MantaCryptoException ex) {
-            throw new CloudException(ex);
-        } catch (IOException ex) {
-            throw new CloudException(ex);
+        } catch (MantaCryptoException e) {
+            throw new CloudException(e);
+        } catch (IOException e) {
+            throw new CloudException(e);
+        } catch( MantaClientHttpResponseException e ) {
+            throw new CloudException(e);
         }
     }
 
@@ -622,51 +648,81 @@ public class Manta implements BlobStoreSupport {
     @Override
     public Blob upload(@Nonnull File sourceFile, @Nullable String bucket, @Nonnull String objectName) throws
             CloudException, InternalException {
-        Preconditions.checkNotNull(sourceFile, "Source file is required");
-        Preconditions.checkNotNull(objectName, "Object name is required");
+        if( bucket == null ) {
+            bucket = "";
+        }
         checkBucket(bucket);
-        String pathToDir = coerceToDirectory(bucket);
+        String pathToDir = toStoragePath(bucket, null, true);
         String validObjectName = parseObjectName(objectName);
         try {
             if (!exists(pathToDir)) {
-                createBucket(pathToDir, false);
+                createBucket(bucket, false);
             }
 
             // todo: may be moved to put method from AbstractBlobStoreSupport
-            MantaObject mantaObject = new MantaObject(pathToDir + validObjectName);
+            MantaObject mantaObject = new MantaObject(pathToDir + "/" + validObjectName);
             mantaObject.setDataInputStream(new FileInputStream(sourceFile));
             mantaClient.put(mantaObject);
 
-            return Blob.getInstance(regionId, "", pathToDir, validObjectName , new Date().getTime(),
+            return Blob.getInstance(regionId, "", bucket, validObjectName , new Date().getTime(),
                     new Storage<org.dasein.util.uom.storage.Byte>(sourceFile.length(), Storage.BYTE));
-        } catch (IOException ex) {
-            throw new CloudException(ex);
-        } catch (MantaCryptoException ex) {
-            throw new CloudException(ex);
+        } catch (IOException e) {
+            throw new CloudException(e);
+        } catch (MantaCryptoException e) {
+            throw new CloudException(e);
+        } catch( MantaClientHttpResponseException e ) {
+            throw new CloudException(e);
         }
     }
 
+    //TODO: remove, root objects ARE supported by Manta
     private void checkBucket(@Nullable String bucket) throws OperationNotSupportedException {
-        if (bucket == null || bucket.isEmpty()) {
-            throw new OperationNotSupportedException("Root objects are not supported");
-        }
+//        if (bucket == null || bucket.trim().isEmpty()) {
+//            throw new OperationNotSupportedException("Root objects are not supported");
+//        }
     }
 
-    /**
-     * Makes path a Manta private storage directory path.
-     *
-     * @param path directory path
-     * @return Manta directory path
-     */
-    private @Nonnull String coerceToDirectory(@Nonnull String path) {
-        String pathToDir = path.trim();
-        if (!pathToDir.startsWith(rootPath)) {
-            pathToDir = rootPath + "/" + pathToDir;
+//    /**
+//     * Makes path a Manta private storage directory path.
+//     *
+//     * @param path directory path
+//     * @return Manta directory path
+//     */
+//    private @Nonnull String coerceToDirectory(@Nonnull String path) {
+//        if( path == null ) {
+//            path = "";
+//        }
+//        String pathToDir = path.trim();
+//        if (!pathToDir.startsWith(rootPath)) {
+//            pathToDir = rootPath + "/" + pathToDir;
+//        }
+//        if (!pathToDir.endsWith("/")) {
+//            pathToDir += "/";
+//        }
+//        return pathToDir;
+//    }
+
+    private @Nonnull String toPath(@Nullable String bucket, @Nullable String object) {
+        String path = "/";
+        if( bucket != null ) {
+            path += bucket;
         }
-        if (!pathToDir.endsWith("/")) {
-            pathToDir += "/";
+        if( object != null ) {
+            if( !path.endsWith("/") && !object.startsWith("/")) {
+                path += "/";
+            }
+            path += object;
         }
-        return pathToDir;
+        return path;
+    }
+
+    private @Nonnull String toStoragePath(@Nullable String bucket, @Nullable String object, boolean isPrivate) {
+        if( isPrivate ) {
+            return rootPath + toPath(bucket, object);
+        }
+        else {
+            return publicPath + toPath(bucket, object);
+        }
     }
 
     /**
@@ -703,8 +759,6 @@ public class Manta implements BlobStoreSupport {
     @Override
     public FileTransfer download(final @Nullable String bucket, @Nonnull final String objectName, final @Nonnull File toFile)
             throws InternalException, CloudException {
-        Preconditions.checkNotNull(objectName, "Object name is required");
-        Preconditions.checkNotNull(toFile, "File is required");
         checkBucket(bucket);
         final FileTransfer fileTransfer = new FileTransfer();
 
@@ -712,7 +766,7 @@ public class Manta implements BlobStoreSupport {
             @Override
             public void run() {
                 try {
-                    processDownloadAsync(fileTransfer, coerceToDirectory(bucket), parseObjectName(objectName), toFile);
+                    processDownloadAsync(fileTransfer, toStoragePath(bucket, objectName, !isPublic(bucket, objectName)), toFile);
                 } catch (Exception ex) {
                     logger.error("Error on file download from Manta Storage", ex);
                     fileTransfer.complete(ex);
@@ -723,8 +777,7 @@ public class Manta implements BlobStoreSupport {
         return fileTransfer;
     }
 
-    private void processDownloadAsync(FileTransfer fileTransfer, String directory, String objectName, File toFile) throws IOException,
-            MantaCryptoException {
+    private void processDownloadAsync(FileTransfer fileTransfer, String path, File toFile) throws IOException, MantaCryptoException, MantaClientHttpResponseException {
 
         // need to synchronize because variables in task is not synchronized properly
         synchronized (fileTransfer) {
@@ -732,7 +785,7 @@ public class Manta implements BlobStoreSupport {
             fileTransfer.setPercentComplete(0);
         }
 
-        MantaObject mantaObject = mantaClient.get(directory + objectName);
+        MantaObject mantaObject = mantaClient.get(path);
         FileUtils.copyInputStreamToFile(mantaObject.getDataInputStream(), toFile);
 
         synchronized (fileTransfer) {

@@ -26,21 +26,8 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.Requirement;
-import org.dasein.cloud.ResourceStatus;
-import org.dasein.cloud.Tag;
-import org.dasein.cloud.compute.AbstractVMSupport;
-import org.dasein.cloud.compute.Architecture;
-import org.dasein.cloud.compute.ImageClass;
-import org.dasein.cloud.compute.MachineImage;
-import org.dasein.cloud.compute.Platform;
-import org.dasein.cloud.compute.VirtualMachine;
-import org.dasein.cloud.compute.VirtualMachineCapabilities;
-import org.dasein.cloud.compute.VirtualMachineProduct;
-import org.dasein.cloud.compute.VMLaunchOptions;
-import org.dasein.cloud.compute.VmState;
+import org.dasein.cloud.*;
+import org.dasein.cloud.compute.*;
 import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.joyent.JoyentMethod;
 import org.dasein.cloud.joyent.SmartDataCenter;
@@ -147,11 +134,6 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
     }
 
     @Override
-    public @Nonnull String getProviderTermForServer(@Nonnull Locale locale) {
-        return "machine";
-    }
-
-    @Override
     public @Nullable VirtualMachine getVirtualMachine(@Nonnull String vmId) throws InternalException, CloudException {
         JoyentMethod method = new JoyentMethod(provider);
 
@@ -169,60 +151,10 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
     }
 
     @Override
-    public @Nonnull Requirement identifyImageRequirement(@Nonnull ImageClass cls) throws CloudException, InternalException {
-        return (cls.equals(ImageClass.MACHINE) ? Requirement.REQUIRED : Requirement.NONE);
-    }
-
-    @Override
-    public @Nonnull Requirement identifyPasswordRequirement(Platform platform) throws CloudException, InternalException {
-        return Requirement.NONE;
-    }
-
-    @Override
-    public @Nonnull Requirement identifyRootVolumeRequirement() throws CloudException, InternalException {
-        return Requirement.NONE;
-    }
-
-    @Override
-    public @Nonnull Requirement identifyShellKeyRequirement(Platform platform) throws CloudException, InternalException {
-        return Requirement.NONE;
-    }
-
-    @Override
-    public @Nonnull Requirement identifyStaticIPRequirement() throws CloudException, InternalException {
-        return Requirement.NONE;
-    }
-
-    @Override
-    public @Nonnull Requirement identifyVlanRequirement() throws CloudException, InternalException {
-        return Requirement.NONE;
-    }
-
-    @Override
-    public boolean isAPITerminationPreventable() throws CloudException, InternalException {
-        return false;
-    }
-
-    @Override
-    public boolean isBasicAnalyticsSupported() throws CloudException, InternalException {
-        return false;
-    }
-
-    @Override
-    public boolean isExtendedAnalyticsSupported() throws CloudException, InternalException {
-        return false;
-    }
-
-    @Override
     public boolean isSubscribed() throws CloudException, InternalException {
         JoyentMethod method = new JoyentMethod(provider);
         
         method.doGetJson(provider.getEndpoint(), "packages");
-        return true;
-    }
-
-    @Override
-    public boolean isUserDataSupported() throws CloudException, InternalException {
         return true;
     }
 
@@ -236,12 +168,18 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
         if( userScript != null ) {
             post.put("metadata.user-script", userScript);
         }
+        if( withLaunchOptions.getHostName() != null ) {
+            String name = validateName(withLaunchOptions.getHostName());
 
-        String name = validateName(withLaunchOptions.getHostName());
-
-        post.put("name", name);
-        post.put("package", withLaunchOptions.getStandardProductId());
-        post.put("dataset", withLaunchOptions.getMachineImageId());
+            post.put("name", name);
+        }
+        // Joyent will use datacenter default package/dataset if missing
+        if( withLaunchOptions.getStandardProductId() != null ) {
+            post.put("package", withLaunchOptions.getStandardProductId());
+        }
+        if( withLaunchOptions.getMachineImageId() != null ) {
+            post.put("dataset", withLaunchOptions.getMachineImageId());
+        }
 
         Map<String,Object> meta = withLaunchOptions.getMetaData();
 
@@ -326,11 +264,24 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
 
     @Override
     public @Nonnull Iterable<String> listFirewalls(@Nonnull String vmId) throws InternalException, CloudException {
+        // TODO
         return Collections.emptyList();
+    }
+
+
+
+    @Override
+    public @Nonnull Iterable<VirtualMachineProduct> listProducts( VirtualMachineProductFilterOptions options ) throws InternalException, CloudException {
+        return listProducts(options, null);
     }
 
     @Override
     public @Nonnull Iterable<VirtualMachineProduct> listProducts(@Nonnull Architecture architecture) throws InternalException, CloudException {
+        return listProducts(null, architecture);
+    }
+
+    @Override
+    public @Nonnull Iterable<VirtualMachineProduct> listProducts(VirtualMachineProductFilterOptions options, Architecture architecture) throws InternalException, CloudException {
         JoyentMethod method = new JoyentMethod(provider);
         String json = method.doGetJson(provider.getEndpoint(), "packages");
         
@@ -354,21 +305,35 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
                 if( ob.has("disk") ) {
                     prd.setRootVolumeSize(new Storage<Megabyte>(ob.getInt("disk"), Storage.MEGABYTE));
                 }
-                prd.setCpuCount(1);
-                prd.setDescription(prd.getName());
-                prd.setProviderProductId(prd.getName());
-                products.add(prd);
+                if( ob.has("vcpus") ) {
+                    prd.setCpuCount(ob.getInt("vcpus"));
+                }
+                // SmartOS products are returned with 0 vCPUs as this metric doesn't apply
+                // to them according to Joyent. In SmartOS you get some burstable capacity.
+                // We will set them to 1 CPU anyway, as zero CPU is no CPU.
+                if( prd.getCpuCount() == 0 ) {
+                    prd.setCpuCount(1);
+                }
+                if( ob.has("description") ) {
+                    prd.setDescription(ob.getString("description"));
+                }
+                else {
+                    prd.setDescription(prd.getName());
+                }
+                prd.setProviderProductId(ob.getString("id"));
+                if( options != null) {
+                    if( options.matches(prd) )
+                        products.add(prd);
+                }
+                else {
+                    products.add(prd);
+                }
             }
             return products;
         }
         catch( JSONException e ) {
             throw new CloudException(e);
         }
-    }
-
-    @Override
-    public Iterable<Architecture> listSupportedArchitectures() throws InternalException, CloudException {
-        return Collections.singletonList(Architecture.I64);
     }
 
     @Override
@@ -432,21 +397,6 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
         JoyentMethod method = new JoyentMethod(provider);
         
         method.doPostString(provider.getEndpoint(), "machines/" + vmId, "action=reboot");
-    }
-
-    @Override
-    public boolean supportsPauseUnpause(@Nonnull VirtualMachine vm) {
-        return false;
-    }
-
-    @Override
-    public boolean supportsStartStop(@Nonnull VirtualMachine vm) {
-        return true;
-    }
-
-    @Override
-    public boolean supportsSuspendResume(@Nonnull VirtualMachine vm) {
-        return false;
     }
 
     @Override
@@ -711,7 +661,11 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
             }
         }
     }
-    
+
+    /*
+    TODO: fix
+    @see org.dasein.cloud.joyent.compute.MachineCapabilities#getVirtualMachineNamingConstraints
+    */
     private String validateName(String originalName) {
         StringBuilder name = new StringBuilder();
         

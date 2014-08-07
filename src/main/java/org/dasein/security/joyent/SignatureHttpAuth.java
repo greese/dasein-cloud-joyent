@@ -67,7 +67,7 @@ public class SignatureHttpAuth implements JoyentHttpAuth {
             List<ContextRequirements.Field> fields = provider.getContextRequirements().getConfigurableValues();
             String keyName = "";
             String privateKey = "";
-            String keyPassword = "";
+            char[] keyPassword = null;
             for(ContextRequirements.Field f : fields ) {
                 if(f.type.equals(ContextRequirements.FieldType.KEYPAIR)){
                     byte[][] keyPair = (byte[][])provider.getContext().getConfigurationValue(f);
@@ -75,11 +75,14 @@ public class SignatureHttpAuth implements JoyentHttpAuth {
                     privateKey = new String(keyPair[1], "utf-8");
                 }
                 else if(f.type.equals(ContextRequirements.FieldType.PASSWORD)){
-                    keyPassword = new String((byte[])provider.getContext().getConfigurationValue(f), "utf-8");
+                    byte[] password = (byte[])provider.getContext().getConfigurationValue(f);
+                    if( password != null ) {
+                        keyPassword = new String(password, "utf-8").toCharArray();
+                    }
                 }
             }
 
-            signature.initSign(getKeyPair(privateKey, keyPassword.toCharArray()).getPrivate());
+            signature.initSign(getKeyPair(privateKey, keyPassword).getPrivate());
             String signingString = String.format(AUTH_SIGN, now);
             signature.update(signingString.getBytes("UTF-8"));
             byte[] signedDate = signature.sign();

@@ -39,9 +39,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class SmartDataCenter extends AbstractCloud {
-    public static final String DSN_SSH_KEY          = "sshKey";
-    public static final String DSN_SSH_KEY_PASSWORD = "sshKeyPassword";
-
     static private @Nonnull String getLastItem(@Nonnull String name) {
         int idx = name.lastIndexOf('.');
         
@@ -78,11 +75,17 @@ public class SmartDataCenter extends AbstractCloud {
         return new JoyentComputeServices(this);
     }
 
+    public static final String DSN_SSH_KEY          = "sshKey";
+    public static final String DSN_SSH_KEY_PASSWORD = "sshKeyPassword";
+
     @Override
     public @Nonnull ContextRequirements getContextRequirements() {
         return new ContextRequirements(
                 new ContextRequirements.Field(DSN_SSH_KEY, "Private SSH Key stored in Joyent", ContextRequirements.FieldType.KEYPAIR, ContextRequirements.Field.ACCESS_KEYS, true),
-                new ContextRequirements.Field(DSN_SSH_KEY_PASSWORD, "Password of ssh key uploaded to Joyent", ContextRequirements.FieldType.PASSWORD, ContextRequirements.Field.ACCESS_KEYS, true)
+                new ContextRequirements.Field(DSN_SSH_KEY_PASSWORD, "Password of ssh key uploaded to Joyent", ContextRequirements.FieldType.PASSWORD, ContextRequirements.Field.ACCESS_KEYS, false),
+                new ContextRequirements.Field("storageUrl", "Manta Storage URL", ContextRequirements.FieldType.TEXT, false),
+                new ContextRequirements.Field("proxyHost", "Proxy host", ContextRequirements.FieldType.TEXT, false),
+                new ContextRequirements.Field("proxyPort", "Proxy port", ContextRequirements.FieldType.TEXT, false)
         );
     }
     
@@ -191,7 +194,7 @@ public class SmartDataCenter extends AbstractCloud {
                 try {
                     return fmt.parse(time).getTime();
                 } catch (ParseException e2) {
-                    throw new CloudException("Could not parse timestamp: " + time);
+                    throw new CloudException("Could not parse timestamp: " + time, e2);
                 }
             }
         }
@@ -224,18 +227,12 @@ public class SmartDataCenter extends AbstractCloud {
                     if( e.getErrorType().equals(CloudErrorType.AUTHENTICATION) ) {
                         return null;
                     }
-                    logger.warn("Cloud error testing Joyent context: " + e.getMessage());
-                    if( logger.isTraceEnabled() ) {
-                        e.printStackTrace();
-                    }
+                    logger.warn("Cloud error testing Joyent context: " + e.getMessage(), e);
                 }
                 return null;
             }
             catch( Throwable t ) {
-                logger.warn("Failed to test Joyent connection context: " + t.getMessage());
-                if( logger.isTraceEnabled() ) {
-                    t.printStackTrace();
-                }
+                logger.warn("Failed to test Joyent connection context: " + t.getMessage(), t);
                 return null;
             }
         }

@@ -27,9 +27,7 @@ import java.util.Locale;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
-import org.dasein.cloud.dc.DataCenter;
-import org.dasein.cloud.dc.DataCenterServices;
-import org.dasein.cloud.dc.Region;
+import org.dasein.cloud.dc.*;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -41,7 +39,17 @@ public class JoyentDataCenter implements DataCenterServices {
     private SmartDataCenter provider;
     
     public JoyentDataCenter(@Nonnull SmartDataCenter sdc) { provider = sdc; }
-    
+
+    private transient volatile JoyentDataCenterCapabilities capabilities;
+    @Nonnull
+    @Override
+    public DataCenterCapabilities getCapabilities() throws InternalException, CloudException {
+        if( capabilities == null ) {
+            capabilities = new JoyentDataCenterCapabilities(provider);
+        }
+        return capabilities;
+    }
+
     @Override
     public @Nullable DataCenter getDataCenter(@Nonnull String providerDataCenterId) throws InternalException, CloudException {
         ProviderContext ctx = provider.getContext();
@@ -125,5 +133,20 @@ public class JoyentDataCenter implements DataCenterServices {
         catch( JSONException e ) {
             throw new CloudException(e);
         }
+    }
+
+    @Override
+    public @Nonnull Collection<ResourcePool> listResourcePools(String providerDataCenterId) throws InternalException, CloudException {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public ResourcePool getResourcePool(String providerResourcePoolId) throws InternalException, CloudException {
+        return null;
+    }
+
+    @Override
+    public @Nonnull Collection<StoragePool> listStoragePools() throws InternalException, CloudException {
+        return Collections.emptyList();
     }
 }

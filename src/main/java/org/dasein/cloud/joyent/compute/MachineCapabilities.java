@@ -122,6 +122,18 @@ public class MachineCapabilities extends AbstractCapabilities<SmartDataCenter> i
         return NamingConstraints.getAlphaNumeric(1, 255).constrainedBy('-', '_');
     }
 
+    @Nullable
+    @Override
+    public VisibleScope getVirtualMachineVisibleScope() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public VisibleScope getVirtualMachineProductVisibleScope() {
+        return null;
+    }
+
     @Nonnull
     @Override
     public Requirement identifyDataCenterLaunchRequirement() throws CloudException, InternalException {
@@ -195,5 +207,50 @@ public class MachineCapabilities extends AbstractCapabilities<SmartDataCenter> i
     @Override
     public Iterable<Architecture> listSupportedArchitectures() throws InternalException, CloudException {
         return Collections.singletonList(Architecture.I64);
+    }
+
+    @Override
+    public boolean supportsSpotVirtualMachines() throws InternalException, CloudException {
+        return false;
+    }
+
+    @Override public boolean supportsAlterVM() {
+        return false;
+    }
+
+    @Override public boolean supportsClone() {
+        return false;
+    }
+
+    @Override public boolean supportsPause() {
+        return false;
+    }
+
+    @Override public boolean supportsReboot() {
+        return true;
+    }
+
+    @Override public boolean supportsResume() {
+        return false;
+    }
+
+    @Override public boolean supportsStart() {
+        return true;
+    }
+
+    @Override public boolean supportsStop() {
+        return true;
+    }
+
+    @Override public boolean supportsSuspend() {
+        return false;
+    }
+
+    @Override public boolean supportsTerminate() {
+        return true;
+    }
+
+    @Override public boolean supportsUnPause() {
+        return false;
     }
 }

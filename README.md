@@ -31,7 +31,7 @@ Here is some basic usage of Dasein Cloud Joyent submodule:
       <dependency>
         <groupId>org.dasein</groupId>
         <artifactId>dasein-cloud-core</artifactId>
-        <version>2013.07.2</version>
+        <version>2014.07.1</version>
         <scope>compile</scope>
         <optional>false</optional>
       </dependency>
@@ -39,7 +39,7 @@ Here is some basic usage of Dasein Cloud Joyent submodule:
       <dependency>
         <groupId>org.dasein</groupId>
         <artifactId>dasein-cloud-joyent</artifactId>
-        <version>2013.07.1</version>
+        <version>2014.07.1</version>
         <scope>runtime</scope>
         <optional>false</optional>
       </dependency>
@@ -59,12 +59,17 @@ Add or modify maven profile in pom.xml according your configuration.
           <providerClass>org.dasein.cloud.joyent.SmartDataCenter</providerClass>
           <endpoint>https://us-west-1.api.joyentcloud.com</endpoint>
           <storageUrl>https://us-east.manta.joyent.com</storageUrl>
-          <keyPath>src/test/resources/data/id_rsa</keyPath>
-          <keyFingerprint>yourFingerprint</keyFingerprint>
+          <sshKeyShared>yourKeyName</sshKeyShared>
+          <sshKeySecret>----BEGIN RSA PRIVATE KEY-----
+                        your private RSA key
+                        -----END RSA PRIVATE KEY-----</sshKeySecret>
+          <sshKeyPassword>yourKeyPassword_Optional</sshKeyPassword>
           <accountNumber>yourAccount</accountNumber>
           <cloudName>Joyent Cloud</cloudName>
           <providerName>Joyent</providerName>
           <regionId>us-west-1</regionId>
+          <proxyHost>yourProxyHost_Optional</proxyHost>
+          <proxyPort>yourProxyPort_Optional</proxyPort>
         </properties>
       </profile>
     </profiles>
@@ -72,7 +77,7 @@ Add or modify maven profile in pom.xml according your configuration.
 Or you can set system variables in Java using this snippet:
 
     Properties props = new Properties();
-    InputStream inputStream = getClassLoader().getResourceAsStream("dsn.properties");
+    InputStream inputStream = getClass().getResourceAsStream("dsn.properties");
     props.load(inputStream);
     for (Map.Entry<Object, Object> entry : props.entrySet()) {
         System.setProperty(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
@@ -82,15 +87,30 @@ dsn.properties:
 
     DSN_PROVIDER_CLASS=org.dasein.cloud.joyent.SmartDataCenter
     DSN_ENDPOINT=https://us-west-1.api.joyentcloud.com
-    DSN_REGION=us-west
-    DSN_ACCOUNT=altoros2
+    DSN_REGION=us-west-1
+    DSN_ACCOUNT=your@account.id
     DSN_CLOUD_NAME=Joyent Cloud
     DSN_CLOUD_PROVIDER=Joyent
     DSN_CUSTOM_STORAGE_URL=https://us-east.manta.joyent.com
-    DSN_CUSTOM_KEY_PATH=src/test/resources/data/id_rsa
-    DSN_CUSTOM_KEY_FINGERPRINT=04:92:7b:23:bc:08:4f:d7:3b:5a:38:9e:4a:17:2e:df
-    DSN_API_SHARED=
-    DSN_API_SECRET=
+    DSN_sshKey_SHARED=YourKeyName
+    DSN_sshKey_SECRET=-----BEGIN RSA PRIVATE KEY-----\n\
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n\
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==\n\
+    -----END RSA PRIVATE KEY-----
+    DSN_sshKeyPassword=
 
 ### Upload sample
 
