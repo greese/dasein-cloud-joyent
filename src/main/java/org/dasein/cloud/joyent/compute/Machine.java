@@ -19,12 +19,14 @@
 
 package org.dasein.cloud.joyent.compute;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 import org.dasein.cloud.*;
 import org.dasein.cloud.compute.*;
@@ -161,12 +163,10 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
     @Override
     public @Nonnull VirtualMachine launch(@Nonnull VMLaunchOptions withLaunchOptions) throws CloudException, InternalException {
         JoyentMethod method = new JoyentMethod(provider);
-        HashMap<String,Object> post = new HashMap<String,Object>();
+        Map<String, Object> post = new HashMap<String,Object>();
 
-        String userScript = withLaunchOptions.getUserData();
-
-        if( userScript != null ) {
-            post.put("metadata.user-script", userScript);
+        if( withLaunchOptions.getUserData() != null ) {
+            post.put("metadata.user-script", withLaunchOptions.getUserData());
         }
         if( withLaunchOptions.getHostName() != null ) {
             String name = validateName(withLaunchOptions.getHostName());
@@ -181,7 +181,7 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
             post.put("dataset", withLaunchOptions.getMachineImageId());
         }
 
-        Map<String,Object> meta = withLaunchOptions.getMetaData();
+        Map<String, Object> meta = withLaunchOptions.getMetaData();
 
         if( meta.size() > 0 ) {
             for( Map.Entry<String,Object> entry : meta.entrySet() ) {
@@ -443,6 +443,40 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
             vm = getVirtualMachine(vmId);
         }
         logger.warn("System timed out waiting for VM termination");
+    }
+
+    @Override
+    public @Nullable String getPassword( @Nonnull String vmId ) throws InternalException, CloudException {
+        final String[] adminUsernames = {"root", "administrator", "admin"};
+        JoyentMethod method = new JoyentMethod(provider);
+        try {
+            JSONObject ob = new JSONObject(method.doGetJson(provider.getEndpoint(), "machines/"+vmId+"/metadata?credentials=true"));
+            if( ob.has("credentials") ) {
+                JSONObject credentials = ob.getJSONObject("credentials");
+                for( String username : adminUsernames ) {
+                    if( ob.has(username) ) {
+                        return ob.getString(username);
+                    }
+                }
+            }
+        } catch( JSONException e ) {
+            throw new InternalException("Unable to parse the response", e);
+        }
+        return null;
+    }
+
+    @Override
+    public @Nullable String getUserData( @Nonnull String vmId ) throws InternalException, CloudException {
+        JoyentMethod method = new JoyentMethod(provider);
+        try {
+            JSONObject ob = new JSONObject(method.doGetJson(provider.getEndpoint(), "machines/"+vmId+"/metadata"));
+            if( ob.has("user-script") ) {
+                return ob.getString("user-script");
+            }
+        } catch( JSONException e ) {
+            throw new InternalException("Unable to parse the response", e);
+        }
+        return null;
     }
 
     private VirtualMachine toVirtualMachine(JSONObject ob) throws CloudException, InternalException {
