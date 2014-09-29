@@ -41,10 +41,7 @@ import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
-import org.dasein.cloud.CloudErrorType;
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.ProviderContext;
+import org.dasein.cloud.*;
 import org.dasein.security.joyent.*;
 
 public class JoyentMethod {
@@ -56,10 +53,12 @@ public class JoyentMethod {
     
     private JoyentClientFactory clientFactory;
     private JoyentHttpAuth httpAuth;
+    private RequestTrackingStrategy strategy;
     
     public JoyentMethod(@Nonnull SmartDataCenter provider) {
         this.clientFactory = new DefaultClientFactory(provider.getContext());
         this.httpAuth = new SignatureHttpAuth(provider);
+        this.strategy = provider.getContext().getRequestTrackingStrategy();
     }
     
     public void doDelete(@Nonnull String endpoint, @Nonnull String resource) throws CloudException, InternalException {
@@ -77,6 +76,10 @@ public class JoyentMethod {
 
             delete.addHeader("Accept", "application/json");
             delete.addHeader("X-Api-Version", VERSION);
+            if(strategy != null && strategy.getSendAsHeader()){
+                delete.addHeader(strategy.getHeaderName(), strategy.getRequestID());
+            }
+
             if( wire.isDebugEnabled() ) {
                 wire.debug(delete.getRequestLine().toString());
                 for( Header header : delete.getAllHeaders() ) {
@@ -166,6 +169,9 @@ public class JoyentMethod {
 
             get.addHeader("Accept", "application/json");
             get.addHeader("X-Api-Version", VERSION);
+            if(strategy != null && strategy.getSendAsHeader()){
+                get.addHeader(strategy.getHeaderName(), strategy.getRequestID());
+            }
 
             if( wire.isDebugEnabled() ) {
                 wire.debug(get.getRequestLine().toString());
@@ -272,6 +278,9 @@ public class JoyentMethod {
 
             get.addHeader("Accept", "application/json");
             get.addHeader("X-Api-Version", VERSION);
+            if(strategy != null && strategy.getSendAsHeader()){
+                get.addHeader(strategy.getHeaderName(), strategy.getRequestID());
+            }
 
             if( wire.isDebugEnabled() ) {
                 wire.debug(get.getRequestLine().toString());
@@ -384,6 +393,9 @@ public class JoyentMethod {
                     
                     post.addHeader(entry.getKey(), val);
                 }
+            }
+            if(strategy != null && strategy.getSendAsHeader()){
+                post.addHeader(strategy.getHeaderName(), strategy.getRequestID());
             }
 
             if( wire.isDebugEnabled() ) {
@@ -508,6 +520,9 @@ public class JoyentMethod {
             }
             post.addHeader("Accept", "application/json");
             post.addHeader("X-Api-Version", VERSION);
+            if(strategy != null && strategy.getSendAsHeader()){
+                post.addHeader(strategy.getHeaderName(), strategy.getRequestID());
+            }
 
             if( payload != null && payload.startsWith("action") ) {
                 post.setEntity(new StringEntity(payload, APPLICATION_FORM_URLENCODED_UTF8));
@@ -632,6 +647,9 @@ public class JoyentMethod {
             post.addHeader("Content-Type", "application/octet-stream");
             post.addHeader("Accept", "application/json");
             post.addHeader("X-Api-Version", VERSION);
+            if(strategy != null && strategy.getSendAsHeader()){
+                post.addHeader(strategy.getHeaderName(), strategy.getRequestID());
+            }
 
             post.setEntity(new InputStreamEntity(stream, -1L, ContentType.APPLICATION_OCTET_STREAM));
             if( wire.isDebugEnabled() ) {
@@ -765,6 +783,10 @@ public class JoyentMethod {
                     put.addHeader(entry.getKey(), val);
                 }
             }
+            if(strategy != null && strategy.getSendAsHeader()){
+                put.addHeader(strategy.getHeaderName(), strategy.getRequestID());
+            }
+
             if( wire.isDebugEnabled() ) {
                 wire.debug(put.getRequestLine().toString());
                 for( Header header : put.getAllHeaders() ) {
@@ -880,6 +902,9 @@ public class JoyentMethod {
             put.addHeader("Content-Type", "application/json");
             put.addHeader("Accept", "application/json");
             put.addHeader("X-Auth-Token", authToken);
+            if(strategy != null && strategy.getSendAsHeader()){
+                put.addHeader(strategy.getHeaderName(), strategy.getRequestID());
+            }
 
             put.setEntity(new StringEntity(payload == null ? "" : payload, APPLICATION_JSON_UTF8));
 
@@ -1000,6 +1025,9 @@ public class JoyentMethod {
             put.addHeader("X-Auth-Token", authToken);
             if( md5Hash != null ) {
                 put.addHeader("ETag", md5Hash);
+            }
+            if(strategy != null && strategy.getSendAsHeader()){
+                put.addHeader(strategy.getHeaderName(), strategy.getRequestID());
             }
 
             put.setEntity(new InputStreamEntity(stream, -1L, ContentType.APPLICATION_OCTET_STREAM));
