@@ -203,6 +203,9 @@ public class MachineCapabilities extends AbstractCapabilities<SmartDataCenter> i
         return true;
     }
 
+    @Override
+    public boolean isUserDefinedPrivateIPSupported(){return false;}
+
     @Nonnull
     @Override
     public Iterable<Architecture> listSupportedArchitectures() throws InternalException, CloudException {

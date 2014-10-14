@@ -26,8 +26,10 @@ import org.dasein.cloud.ResourceStatus;
 import org.dasein.cloud.Tag;
 import org.dasein.cloud.compute.*;
 import org.dasein.cloud.identity.ServiceAction;
+import org.dasein.cloud.joyent.JoyentException;
 import org.dasein.cloud.joyent.JoyentMethod;
 import org.dasein.cloud.joyent.SmartDataCenter;
+import org.dasein.cloud.util.CacheLevel;
 import org.dasein.util.CalendarWrapper;
 import org.dasein.util.uom.storage.Megabyte;
 import org.dasein.util.uom.storage.Storage;
@@ -153,9 +155,28 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
 
     @Override
     public boolean isSubscribed() throws CloudException, InternalException {
+
+        org.dasein.cloud.util.Cache<Boolean> cache = org.dasein.cloud.util.Cache.getInstance(getProvider(),
+                "isSubscribedVirtualMachine", Boolean.class, CacheLevel.REGION_ACCOUNT);
+        final Iterable<Boolean> cachedIsSubscribed = cache.get(getContext());
+        if (cachedIsSubscribed != null && cachedIsSubscribed.iterator().hasNext()) {
+            final Boolean isSubscribed = cachedIsSubscribed.iterator().next();
+            if (isSubscribed != null) {
+                return isSubscribed;
+            }
+        }
+
         JoyentMethod method = new JoyentMethod(provider);
-        
-        method.doGetJson(provider.getEndpoint(), "packages");
+        try {
+            method.doGetJson(provider.getEndpoint(), "packages");
+        } catch (JoyentException e) {
+            if (e.getErrorType().equals(CloudErrorType.AUTHENTICATION)) {
+                cache.put(getContext(), Collections.singleton(false));
+                return false;
+            }
+            throw e;
+        }
+        cache.put(getContext(), Collections.singleton(true));
         return true;
     }
 
