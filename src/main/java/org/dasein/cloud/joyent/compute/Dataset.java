@@ -250,6 +250,7 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
         Architecture architecture = Architecture.I64;
         Platform platform = Platform.UNKNOWN;
         long created = 0L;
+        Boolean isPublic = null;
 
         try {
             if( json.has("id") ) {
@@ -277,7 +278,8 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
                 name = name + ":" + version;
             }
             if( json.has("public") ) {
-                owner = json.getBoolean("public") ? "--joyent--" : getContext().getAccountNumber();
+                isPublic = json.getBoolean("public");
+                owner = isPublic ? "--joyent--" : getContext().getAccountNumber();
             }
             if( json.has("requirements") ) {
                 JSONObject requirements = json.getJSONObject("requirements");
@@ -301,7 +303,11 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
             description = name + " (" + platform + ") [#" + imageId + "]";
         }
         //old version only supported public images and did not return owner attribute
-        return MachineImage.getMachineImageInstance(owner, regionId, imageId, MachineImageState.ACTIVE, name, description, architecture, platform).createdAt(created);
+        final MachineImage machineImage = MachineImage.getMachineImageInstance(owner, regionId, imageId, MachineImageState.ACTIVE, name, description, architecture, platform).createdAt(created);
+        if (isPublic != null) {
+            machineImage.setTag("public", String.valueOf(isPublic));
+        }
+        return machineImage;
 
     }
 }
