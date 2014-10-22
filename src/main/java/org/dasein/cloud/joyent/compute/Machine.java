@@ -209,6 +209,8 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
             }
         }
         post.put("metadata.dsnTrueImage", withLaunchOptions.getMachineImageId());
+        post.put("metadata.dsnTrueProduct", withLaunchOptions.getStandardProductId());
+        //Addition of new metadata to retrieve server products using product name.
         post.put("metadata.dsnTrueProductName", withLaunchOptions.getStandardProductId());
         post.put("metadata.dsnDescription", withLaunchOptions.getDescription());
         String json = method.doPostString(provider.getEndpoint(), "machines", new JSONObject(post).toString());
@@ -573,6 +575,7 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
                         else if( name.equals("dsnTrueImage") ) {
                             vm.setProviderMachineImageId(md.getString(name));
                         }
+                        //Look for product name in metadata
                         else if( name.equals("dsnTrueProductName") ) {
                             vm.setProductId(md.getString(name));
                         }
@@ -619,6 +622,7 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
                     d = prd;
                     boolean isProductSmartOs = prd.getName().contains("smartos");
                     if( prd.getRootVolumeSize().convertTo(Storage.MEGABYTE).intValue() == disk && prd.getRamSize().intValue() == ram ) {
+                        //products can have similar specs but different name based on platforms.
                         if (isVMSmartOs && !isProductSmartOs){
                             continue;
                         }
