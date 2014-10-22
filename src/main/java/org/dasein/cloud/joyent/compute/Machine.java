@@ -29,10 +29,14 @@ import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.joyent.JoyentException;
 import org.dasein.cloud.joyent.JoyentMethod;
 import org.dasein.cloud.joyent.SmartDataCenter;
+import org.dasein.cloud.util.Cache;
 import org.dasein.cloud.util.CacheLevel;
 import org.dasein.util.CalendarWrapper;
 import org.dasein.util.uom.storage.Megabyte;
 import org.dasein.util.uom.storage.Storage;
+import org.dasein.util.uom.time.Day;
+import org.dasein.util.uom.time.TimePeriod;
+import org.dasein.util.uom.time.TimePeriodUnit;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -294,6 +298,11 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
 
     @Override
     public @Nonnull Iterable<VirtualMachineProduct> listProducts(VirtualMachineProductFilterOptions options, Architecture architecture) throws InternalException, CloudException {
+        Cache<VirtualMachineProduct> cache = Cache.getInstance(getProvider(), "VM.listProducts", VirtualMachineProduct.class, CacheLevel.REGION_ACCOUNT, TimePeriod.valueOf(1, "day"));
+        final Iterable<VirtualMachineProduct> cachedProducts = cache.get(getContext());
+        if( cachedProducts != null && cachedProducts.iterator().hasNext() ) {
+            return cachedProducts;
+        }
         JoyentMethod method = new JoyentMethod(provider);
         String json = method.doGetJson(provider.getEndpoint(), "packages");
         
@@ -342,6 +351,7 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
                     products.add(prd);
                 }
             }
+            cache.put(getContext(), products);
             return products;
         }
         catch( JSONException e ) {
