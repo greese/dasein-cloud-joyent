@@ -52,6 +52,11 @@
             <optional>false</optional>
         </dependency>
         <dependency>
+            <groupId>org.dasein</groupId>
+            <artifactId>dasein-util</artifactId>
+            <version>2013.02</version>
+        </dependency>
+        <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>1.2.17</version>
