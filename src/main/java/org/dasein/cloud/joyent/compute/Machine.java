@@ -20,10 +20,7 @@
 package org.dasein.cloud.joyent.compute;
 
 import org.apache.log4j.Logger;
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.ResourceStatus;
-import org.dasein.cloud.Tag;
+import org.dasein.cloud.*;
 import org.dasein.cloud.compute.*;
 import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.joyent.JoyentException;
@@ -617,6 +614,7 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
                 vm.setDescription(vm.getName());
             }
             discover(vm);
+            boolean isVMSmartOs = (vm.getPlatform().equals(Platform.SMARTOS));
             if( vm.getProductId() == null ) {
                 VirtualMachineProduct d = null;
                 int disk, ram;
@@ -625,7 +623,14 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
                 ram = ob.getInt("memory");
                 for( VirtualMachineProduct prd : listProducts(vm.getArchitecture()) ) {
                     d = prd;
+                    boolean isProductSmartOs = prd.getName().contains("smartos");
                     if( prd.getRootVolumeSize().convertTo(Storage.MEGABYTE).intValue() == disk && prd.getRamSize().intValue() == ram ) {
+                        if (isVMSmartOs && !isProductSmartOs){
+                            continue;
+                        }
+                        if (!isVMSmartOs && isProductSmartOs){
+                            continue;
+                        }
                         vm.setProductId(prd.getProviderProductId());
                         break;
                     }
