@@ -20,14 +20,17 @@
 package org.dasein.cloud.joyent.compute;
 
 import org.dasein.cloud.AsynchronousTask;
+import org.dasein.cloud.CloudErrorType;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.compute.*;
 import org.dasein.cloud.identity.ServiceAction;
+import org.dasein.cloud.joyent.JoyentException;
 import org.dasein.cloud.joyent.JoyentMethod;
 import org.dasein.cloud.joyent.SmartDataCenter;
 import org.dasein.cloud.util.APITrace;
+import org.dasein.cloud.util.CacheLevel;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -37,6 +40,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 public class Dataset extends AbstractImageSupport<SmartDataCenter> {
+    private SmartDataCenter                        provider;
     private volatile transient DatasetCapabilities capabilities;
 
     Dataset( @Nonnull SmartDataCenter sdc ) {
@@ -146,9 +150,26 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
 
     @Override
     public boolean isSubscribed() throws CloudException, InternalException {
-        JoyentMethod method = new JoyentMethod(getProvider());
+        org.dasein.cloud.util.Cache<Boolean> cache = org.dasein.cloud.util.Cache.getInstance(getProvider(), "Image.isSubscribed", Boolean.class, CacheLevel.REGION_ACCOUNT);
+        final Iterable<Boolean> cachedIsSubscribed = cache.get(getContext());
+        if (cachedIsSubscribed != null && cachedIsSubscribed.iterator().hasNext()) {
+            final Boolean isSubscribed = cachedIsSubscribed.iterator().next();
+            if (isSubscribed != null) {
+                return isSubscribed;
+            }
+        }
 
-        method.doGetJson(getProvider().getEndpoint(), "images");
+        JoyentMethod method = new JoyentMethod(provider);
+        try {
+            method.doGetJson(provider.getEndpoint(), "images");
+        } catch (JoyentException e) {
+            if (e.getErrorType().equals(CloudErrorType.AUTHENTICATION)) {
+                cache.put(getContext(), Collections.singleton(false));
+                return false;
+            }
+            throw e;
+        }
+        cache.put(getContext(), Collections.singleton(true));
         return true;
     }
 
@@ -250,6 +271,7 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
         Architecture architecture = Architecture.I64;
         Platform platform = Platform.UNKNOWN;
         long created = 0L;
+        Boolean isPublic = null;
 
         try {
             if( json.has("id") ) {
@@ -277,7 +299,8 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
                 name = name + ":" + version;
             }
             if( json.has("public") ) {
-                owner = json.getBoolean("public") ? "--joyent--" : getContext().getAccountNumber();
+                isPublic = json.getBoolean("public");
+                owner = isPublic ? "--joyent--" : getContext().getAccountNumber();
             }
             if( json.has("requirements") ) {
                 JSONObject requirements = json.getJSONObject("requirements");
@@ -301,7 +324,11 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
             description = name + " (" + platform + ") [#" + imageId + "]";
         }
         //old version only supported public images and did not return owner attribute
-        return MachineImage.getMachineImageInstance(owner, regionId, imageId, MachineImageState.ACTIVE, name, description, architecture, platform).createdAt(created);
+        final MachineImage machineImage = MachineImage.getMachineImageInstance(owner, regionId, imageId, MachineImageState.ACTIVE, name, description, architecture, platform).createdAt(created);
+        if (isPublic != null) {
+            machineImage.setTag("public", String.valueOf(isPublic));
+        }
+        return machineImage;
 
     }
 }

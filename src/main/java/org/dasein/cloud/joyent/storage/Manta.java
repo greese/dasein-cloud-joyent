@@ -33,6 +33,7 @@ import org.dasein.cloud.joyent.SmartDataCenter;
 import org.dasein.cloud.storage.Blob;
 import org.dasein.cloud.storage.BlobStoreSupport;
 import org.dasein.cloud.storage.FileTransfer;
+import org.dasein.cloud.util.CacheLevel;
 import org.dasein.cloud.util.NamingConstraints;
 import org.dasein.util.uom.storage.*;
 
@@ -446,11 +447,25 @@ public class Manta implements BlobStoreSupport {
      */
     @Override
     public boolean isSubscribed() throws CloudException, InternalException {
+
+        org.dasein.cloud.util.Cache<Boolean> cache = org.dasein.cloud.util.Cache.getInstance(provider,
+                "Blob.isSubscribed", Boolean.class, CacheLevel.REGION_ACCOUNT);
+        final ProviderContext context = provider.getContext();
+        final Iterable<Boolean> cachedIsSubscribed = cache.get(context);
+        if (cachedIsSubscribed != null && cachedIsSubscribed.iterator().hasNext()) {
+            final Boolean isSubscribed = cachedIsSubscribed.iterator().next();
+            if (isSubscribed != null) {
+                return isSubscribed;
+            }
+        }
+
         try {
             mantaClient.listObjects(rootPath);
+            cache.put(context, Collections.singleton(true));
             return true;
         } catch (MantaClientHttpResponseException ex) {
             if (ex.getStatusCode() == HttpStatus.SC_FORBIDDEN) {
+                cache.put(context, Collections.singleton(false));
                 return false;
             }
             throw new CloudException(ex);

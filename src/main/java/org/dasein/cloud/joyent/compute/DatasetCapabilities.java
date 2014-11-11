@@ -109,6 +109,9 @@ public class DatasetCapabilities extends AbstractCapabilities<SmartDataCenter> i
     }
 
     @Override
+    public boolean supportsImageCopy(){return false;}
+
+    @Override
     public boolean supportsImageSharing() throws CloudException, InternalException {
         return false;
     }
@@ -122,4 +125,7 @@ public class DatasetCapabilities extends AbstractCapabilities<SmartDataCenter> i
     public boolean supportsPublicLibrary(@Nonnull ImageClass cls) throws CloudException, InternalException {
         return ImageClass.MACHINE.equals(cls);
     }
+
+    @Override
+    public boolean supportsListingAllRegions(){return false;}
 }
