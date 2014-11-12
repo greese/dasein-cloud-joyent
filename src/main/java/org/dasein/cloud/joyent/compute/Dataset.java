@@ -249,6 +249,7 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
                 MachineImage image = toMachineImage(arr.getJSONObject(i));
 
                 if( image != null && options.matches(image) ) {
+                    image.sharedWithPublic();// mark it as public regardless, since it is
                     images.add(image);
                 }
             }
@@ -327,6 +328,9 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
         final MachineImage machineImage = MachineImage.getMachineImageInstance(owner, regionId, imageId, MachineImageState.ACTIVE, name, description, architecture, platform).createdAt(created);
         if (isPublic != null) {
             machineImage.setTag("public", String.valueOf(isPublic));
+            if( isPublic ) {
+                machineImage.sharedWithPublic();
+            }
         }
         return machineImage;
 
