@@ -40,7 +40,6 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 public class Dataset extends AbstractImageSupport<SmartDataCenter> {
-    private SmartDataCenter                        provider;
     private volatile transient DatasetCapabilities capabilities;
 
     Dataset( @Nonnull SmartDataCenter sdc ) {
@@ -159,9 +158,9 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
             }
         }
 
-        JoyentMethod method = new JoyentMethod(provider);
+        JoyentMethod method = new JoyentMethod(getProvider());
         try {
-            method.doGetJson(provider.getEndpoint(), "images");
+            method.doGetJson(getProvider().getEndpoint(), "images");
         } catch (JoyentException e) {
             if (e.getErrorType().equals(CloudErrorType.AUTHENTICATION)) {
                 cache.put(getContext(), Collections.singleton(false));
