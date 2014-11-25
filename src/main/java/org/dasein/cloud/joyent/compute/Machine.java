@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2009-2013 Dell, Inc
+ * Copyright (C) 2009-2014 Dell, Inc
  * See annotations for authorship information
  *
  * ====================================================================
@@ -19,27 +19,31 @@
 
 package org.dasein.cloud.joyent.compute;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-
 import org.apache.log4j.Logger;
 import org.dasein.cloud.*;
 import org.dasein.cloud.compute.*;
 import org.dasein.cloud.identity.ServiceAction;
+import org.dasein.cloud.joyent.JoyentException;
 import org.dasein.cloud.joyent.JoyentMethod;
 import org.dasein.cloud.joyent.SmartDataCenter;
+import org.dasein.cloud.util.Cache;
+import org.dasein.cloud.util.CacheLevel;
 import org.dasein.util.CalendarWrapper;
 import org.dasein.util.uom.storage.Megabyte;
 import org.dasein.util.uom.storage.Storage;
+import org.dasein.util.uom.time.Day;
+import org.dasein.util.uom.time.TimePeriod;
+import org.dasein.util.uom.time.TimePeriodUnit;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Machine extends AbstractVMSupport<SmartDataCenter> {
     Logger logger = SmartDataCenter.getLogger(Machine.class, "std");
@@ -152,21 +156,38 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
 
     @Override
     public boolean isSubscribed() throws CloudException, InternalException {
+
+        org.dasein.cloud.util.Cache<Boolean> cache = org.dasein.cloud.util.Cache.getInstance(getProvider(),
+                "isSubscribedVirtualMachine", Boolean.class, CacheLevel.REGION_ACCOUNT);
+        final Iterable<Boolean> cachedIsSubscribed = cache.get(getContext());
+        if (cachedIsSubscribed != null && cachedIsSubscribed.iterator().hasNext()) {
+            final Boolean isSubscribed = cachedIsSubscribed.iterator().next();
+            if (isSubscribed != null) {
+                return isSubscribed;
+            }
+        }
+
         JoyentMethod method = new JoyentMethod(provider);
-        
-        method.doGetJson(provider.getEndpoint(), "packages");
+        try {
+            method.doGetJson(provider.getEndpoint(), "packages");
+        } catch (JoyentException e) {
+            if (e.getErrorType().equals(CloudErrorType.AUTHENTICATION)) {
+                cache.put(getContext(), Collections.singleton(false));
+                return false;
+            }
+            throw e;
+        }
+        cache.put(getContext(), Collections.singleton(true));
         return true;
     }
 
     @Override
     public @Nonnull VirtualMachine launch(@Nonnull VMLaunchOptions withLaunchOptions) throws CloudException, InternalException {
         JoyentMethod method = new JoyentMethod(provider);
-        HashMap<String,Object> post = new HashMap<String,Object>();
+        Map<String, Object> post = new HashMap<String,Object>();
 
-        String userScript = withLaunchOptions.getUserData();
-
-        if( userScript != null ) {
-            post.put("metadata.user-script", userScript);
+        if( withLaunchOptions.getUserData() != null ) {
+            post.put("metadata.user-script", withLaunchOptions.getUserData());
         }
         if( withLaunchOptions.getHostName() != null ) {
             String name = validateName(withLaunchOptions.getHostName());
@@ -181,7 +202,7 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
             post.put("dataset", withLaunchOptions.getMachineImageId());
         }
 
-        Map<String,Object> meta = withLaunchOptions.getMetaData();
+        Map<String, Object> meta = withLaunchOptions.getMetaData();
 
         if( meta.size() > 0 ) {
             for( Map.Entry<String,Object> entry : meta.entrySet() ) {
@@ -271,17 +292,12 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
 
 
     @Override
-    public @Nonnull Iterable<VirtualMachineProduct> listProducts( VirtualMachineProductFilterOptions options ) throws InternalException, CloudException {
-        return listProducts(options, null);
-    }
-
-    @Override
-    public @Nonnull Iterable<VirtualMachineProduct> listProducts(@Nonnull Architecture architecture) throws InternalException, CloudException {
-        return listProducts(null, architecture);
-    }
-
-    @Override
     public @Nonnull Iterable<VirtualMachineProduct> listProducts(VirtualMachineProductFilterOptions options, Architecture architecture) throws InternalException, CloudException {
+        Cache<VirtualMachineProduct> cache = Cache.getInstance(getProvider(), "VM.listProducts", VirtualMachineProduct.class, CacheLevel.REGION_ACCOUNT, TimePeriod.valueOf(1, "day"));
+        final Iterable<VirtualMachineProduct> cachedProducts = cache.get(getContext());
+        if( cachedProducts != null && cachedProducts.iterator().hasNext() ) {
+            return cachedProducts;
+        }
         JoyentMethod method = new JoyentMethod(provider);
         String json = method.doGetJson(provider.getEndpoint(), "packages");
         
@@ -329,6 +345,7 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
                     products.add(prd);
                 }
             }
+            cache.put(getContext(), products);
             return products;
         }
         catch( JSONException e ) {
@@ -443,6 +460,40 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
             vm = getVirtualMachine(vmId);
         }
         logger.warn("System timed out waiting for VM termination");
+    }
+
+    @Override
+    public @Nullable String getPassword( @Nonnull String vmId ) throws InternalException, CloudException {
+        final String[] adminUsernames = {"root", "administrator", "admin"};
+        JoyentMethod method = new JoyentMethod(provider);
+        try {
+            JSONObject ob = new JSONObject(method.doGetJson(provider.getEndpoint(), "machines/"+vmId+"/metadata?credentials=true"));
+            if( ob.has("credentials") ) {
+                JSONObject credentials = ob.getJSONObject("credentials");
+                for( String username : adminUsernames ) {
+                    if( ob.has(username) ) {
+                        return ob.getString(username);
+                    }
+                }
+            }
+        } catch( JSONException e ) {
+            throw new InternalException("Unable to parse the response", e);
+        }
+        return null;
+    }
+
+    @Override
+    public @Nullable String getUserData( @Nonnull String vmId ) throws InternalException, CloudException {
+        JoyentMethod method = new JoyentMethod(provider);
+        try {
+            JSONObject ob = new JSONObject(method.doGetJson(provider.getEndpoint(), "machines/"+vmId+"/metadata"));
+            if( ob.has("user-script") ) {
+                return ob.getString("user-script");
+            }
+        } catch( JSONException e ) {
+            throw new InternalException("Unable to parse the response", e);
+        }
+        return null;
     }
 
     private VirtualMachine toVirtualMachine(JSONObject ob) throws CloudException, InternalException {
@@ -563,6 +614,7 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
                 vm.setDescription(vm.getName());
             }
             discover(vm);
+            boolean isVMSmartOs = (vm.getPlatform().equals(Platform.SMARTOS));
             if( vm.getProductId() == null ) {
                 VirtualMachineProduct d = null;
                 int disk, ram;
@@ -571,7 +623,14 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
                 ram = ob.getInt("memory");
                 for( VirtualMachineProduct prd : listProducts(vm.getArchitecture()) ) {
                     d = prd;
+                    boolean isProductSmartOs = prd.getName().contains("smartos");
                     if( prd.getRootVolumeSize().convertTo(Storage.MEGABYTE).intValue() == disk && prd.getRamSize().intValue() == ram ) {
+                        if (isVMSmartOs && !isProductSmartOs){
+                            continue;
+                        }
+                        if (!isVMSmartOs && isProductSmartOs){
+                            continue;
+                        }
                         vm.setProductId(prd.getProviderProductId());
                         break;
                     }

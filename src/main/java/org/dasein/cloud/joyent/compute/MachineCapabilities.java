@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2009-2013 Dell, Inc
+ * Copyright (C) 2009-2014 Dell, Inc
  * See annotations for authorship information
  *
  * ====================================================================
@@ -202,6 +202,9 @@ public class MachineCapabilities extends AbstractCapabilities<SmartDataCenter> i
     public boolean isUserDataSupported() throws CloudException, InternalException {
         return true;
     }
+
+    @Override
+    public boolean isUserDefinedPrivateIPSupported(){return false;}
 
     @Nonnull
     @Override
