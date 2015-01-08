@@ -217,7 +217,7 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
 
         if( meta.size() > 0 ) {
             for( Map.Entry<String,Object> entry : meta.entrySet() ) {
-                post.put("metadata." + entry.getKey(), entry.getValue().toString());
+                post.put("metadata." + entry.getKey(), String.valueOf(entry.getValue()));
             }
         }
         post.put("metadata.dsnTrueImage", withLaunchOptions.getMachineImageId());
