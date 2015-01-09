@@ -55,7 +55,19 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
         super(sdc);
         provider = sdc;
     }
-    
+
+    @Override
+    /**
+     * Only resizing of type=smartmachine is supported.
+     */
+    public VirtualMachine alterVirtualMachineProduct( @Nonnull String virtualMachineId, @Nonnull String productId ) throws InternalException, CloudException {
+        JoyentMethod method = new JoyentMethod(provider);
+
+        method.doPostString(provider.getEndpoint(), "machines/" + virtualMachineId, "action=resize&package="+productId);
+        return getVirtualMachine(virtualMachineId);
+    }
+
+
     @Override
     public void start(@Nonnull String vmId) throws InternalException, CloudException {
         JoyentMethod method = new JoyentMethod(provider);
@@ -80,7 +92,6 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
             vm.setPlatform(d.platform);
         }
         else {
-            // TODO: uncomment this bit when machine image support is in place
             if( !provider.getComputeServices().hasImageSupport() ) {
                 vm.setArchitecture(Architecture.I64);
                 vm.setPlatform(Platform.UNKNOWN);
@@ -206,7 +217,7 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
 
         if( meta.size() > 0 ) {
             for( Map.Entry<String,Object> entry : meta.entrySet() ) {
-                post.put("metadata." + entry.getKey(), entry.getValue().toString());
+                post.put("metadata." + entry.getKey(), String.valueOf(entry.getValue()));
             }
         }
         post.put("metadata.dsnTrueImage", withLaunchOptions.getMachineImageId());
