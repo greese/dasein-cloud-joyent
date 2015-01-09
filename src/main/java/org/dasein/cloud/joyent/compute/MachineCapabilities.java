@@ -45,8 +45,7 @@ public class MachineCapabilities extends AbstractCapabilities<SmartDataCenter> i
 
     @Override
     public boolean canAlter(@Nonnull VmState fromState) throws CloudException, InternalException {
-        // TODO: altering is supported in Joyent, but not through Dasein yet.
-        return false;
+        return VmState.STOPPED.equals(fromState);
     }
 
     @Override
@@ -113,7 +112,7 @@ public class MachineCapabilities extends AbstractCapabilities<SmartDataCenter> i
     @Nullable
     @Override
     public VMScalingCapabilities getVerticalScalingCapabilities() throws CloudException, InternalException {
-        return null;
+        return VMScalingCapabilities.getInstance(false, true, false);
     }
 
     @Nonnull
