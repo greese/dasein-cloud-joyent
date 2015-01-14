@@ -230,11 +230,11 @@
                             <value>${proxyPort}</value>
                         </property>
                     </systemProperties>
-                    <excludes>
-                        <exclude>**/TestSuite.java</exclude>
-                        <exclude>**/storage/MantaStorageSmokeTest.java</exclude>
-                        <exclude>**/storage/MantaStorageTest.java</exclude>
-                    </excludes>
+                    <includes>
+                        <include>**/TestSuite.java</include>
+                        <!--<exclude>**/storage/MantaStorageSmokeTest.java</exclude>
+                        <exclude>**/storage/MantaStorageTest.java</exclude>-->
+                    </includes>
                     <argLine>-Dapple.awt.UIElement=true</argLine>
                 </configuration>
             </plugin>
