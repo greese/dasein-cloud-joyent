@@ -24,18 +24,16 @@ import org.dasein.cloud.joyent.SmartDataCenter;
 
 import javax.annotation.Nonnull;
 
-public class JoyentComputeServices extends AbstractComputeServices {
-    private SmartDataCenter provider;
-    
-    public JoyentComputeServices(@Nonnull SmartDataCenter sdc) { provider = sdc; }
+public class JoyentComputeServices extends AbstractComputeServices<SmartDataCenter> {
+    public JoyentComputeServices(@Nonnull SmartDataCenter sdc) { super(sdc); }
     
     @Override
     public @Nonnull Dataset getImageSupport() {
-        return new Dataset(provider);
+        return new Dataset(getProvider());
     }
     
     @Override
     public @Nonnull Machine getVirtualMachineSupport() {
-        return new Machine(provider);
+        return new Machine(getProvider());
     }
 }
