@@ -34,9 +34,9 @@ import java.io.IOException;
  */
 public class MantaStorageServices extends AbstractStorageServices {
     private static final Logger logger = SmartDataCenter.getLogger(MantaStorageServices.class, "std");
-    private CloudProvider provider;
+    private SmartDataCenter provider;
 
-    public MantaStorageServices(CloudProvider provider) {
+    public MantaStorageServices(SmartDataCenter provider) {
         this.provider = provider;
     }
 
