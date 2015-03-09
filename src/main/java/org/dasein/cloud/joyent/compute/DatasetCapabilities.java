@@ -128,4 +128,7 @@ public class DatasetCapabilities extends AbstractCapabilities<SmartDataCenter> i
 
     @Override
     public boolean supportsListingAllRegions(){return false;}
+
+    @Override
+    public boolean imageCaptureDestroysVM() throws CloudException, InternalException{return false;}
 }
