@@ -212,6 +212,15 @@ public class MachineCapabilities extends AbstractCapabilities<SmartDataCenter> i
     }
 
     @Override
+    public boolean isVMProductDCConstrained() throws CloudException, InternalException {return false;}
+
+    @Override
+    public boolean supportsCloudStoredShellKey() throws CloudException, InternalException {return false;}
+
+    @Override
+    public boolean supportsClientRequestToken() throws CloudException, InternalException {return false;}
+
+    @Override
     public boolean supportsSpotVirtualMachines() throws InternalException, CloudException {
         return false;
     }
