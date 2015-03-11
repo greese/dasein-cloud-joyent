@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2009-2014 Dell, Inc
+ * Copyright (C) 2009-2015 Dell, Inc
  * See annotations for authorship information
  *
  * ====================================================================
@@ -128,4 +128,7 @@ public class DatasetCapabilities extends AbstractCapabilities<SmartDataCenter> i
 
     @Override
     public boolean supportsListingAllRegions(){return false;}
+
+    @Override
+    public boolean imageCaptureDestroysVM() throws CloudException, InternalException{return false;}
 }

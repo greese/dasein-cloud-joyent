@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2009-2014 Dell, Inc
+ * Copyright (C) 2009-2015 Dell, Inc
  * See annotations for authorship information
  *
  * ====================================================================
@@ -210,6 +210,15 @@ public class MachineCapabilities extends AbstractCapabilities<SmartDataCenter> i
     public Iterable<Architecture> listSupportedArchitectures() throws InternalException, CloudException {
         return Collections.singletonList(Architecture.I64);
     }
+
+    @Override
+    public boolean isVMProductDCConstrained() throws CloudException, InternalException {return false;}
+
+    @Override
+    public boolean supportsCloudStoredShellKey() throws CloudException, InternalException {return false;}
+
+    @Override
+    public boolean supportsClientRequestToken() throws CloudException, InternalException {return false;}
 
     @Override
     public boolean supportsSpotVirtualMachines() throws InternalException, CloudException {

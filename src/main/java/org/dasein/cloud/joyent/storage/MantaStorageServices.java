@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2009-2014 Dell, Inc
+ * Copyright (C) 2009-2015 Dell, Inc
  * See annotations for authorship information
  *
  * ====================================================================
@@ -34,9 +34,9 @@ import java.io.IOException;
  */
 public class MantaStorageServices extends AbstractStorageServices {
     private static final Logger logger = SmartDataCenter.getLogger(MantaStorageServices.class, "std");
-    private CloudProvider provider;
+    private SmartDataCenter provider;
 
-    public MantaStorageServices(CloudProvider provider) {
+    public MantaStorageServices(SmartDataCenter provider) {
         this.provider = provider;
     }
 
