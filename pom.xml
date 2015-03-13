@@ -234,11 +234,11 @@
                             <value>13328c9a-9173-11e2-a9a5-2ff43d306c21</value>
                         </property>
                     </systemProperties>
-                    <includes>
-                        <include>**/TestSuite.java</include>
+                    <excludes>
+                        <exclude>**/TestSuite.java</exclude>
                     <!--    <exclude>**/storage/MantaStorageSmokeTest.java</exclude>
                         <exclude>**/storage/MantaStorageTest.java</exclude> -->
-                    </includes>
+                    </excludes>
                     <argLine>-Dapple.awt.UIElement=true</argLine>
                 </configuration>
             </plugin>
