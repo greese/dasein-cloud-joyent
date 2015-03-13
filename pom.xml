@@ -229,12 +229,16 @@
                             <name>proxyPort</name>
                             <value>${proxyPort}</value>
                         </property>
+                        <property>
+                            <name>test.machineImage</name>
+                            <value>13328c9a-9173-11e2-a9a5-2ff43d306c21</value>
+                        </property>
                     </systemProperties>
-                    <excludes>
-                        <exclude>**/TestSuite.java</exclude>
-                        <exclude>**/storage/MantaStorageSmokeTest.java</exclude>
-                        <exclude>**/storage/MantaStorageTest.java</exclude>
-                    </excludes>
+                    <includes>
+                        <include>**/TestSuite.java</include>
+                    <!--    <exclude>**/storage/MantaStorageSmokeTest.java</exclude>
+                        <exclude>**/storage/MantaStorageTest.java</exclude> -->
+                    </includes>
                     <argLine>-Dapple.awt.UIElement=true</argLine>
                 </configuration>
             </plugin>
