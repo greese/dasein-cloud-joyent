@@ -43,6 +43,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Machine extends AbstractVMSupport<SmartDataCenter> {
@@ -125,9 +126,8 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
 
     static private HashMap<String,VirtualMachineProduct> productCache = new HashMap<String,VirtualMachineProduct>();
 
-    @Nonnull
     @Override
-    public VirtualMachineCapabilities getCapabilities() throws InternalException, CloudException {
+    public @Nonnull VirtualMachineCapabilities getCapabilities() throws InternalException, CloudException {
         if( capabilities == null ) {
             capabilities = new MachineCapabilities(provider);
         }
@@ -301,6 +301,30 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
     }
 
 
+    @Override
+    public @Nonnull Iterable<VirtualMachineProduct> listProducts(@Nonnull String machineImageId) throws InternalException, CloudException {
+        MachineImage image = getProvider().getComputeServices().getImageSupport().getImage(machineImageId);
+        Iterable<VirtualMachineProduct> allProducts = listProducts(image.getArchitecture());
+        List<VirtualMachineProduct> products = new ArrayList<VirtualMachineProduct>();
+        long minRamSize = 0L;
+        String value = image.getProviderMetadata().get("min_ram");
+        if( value != null ) {
+            minRamSize = Long.parseLong(value);
+        }
+        for( VirtualMachineProduct product : allProducts ) {
+            boolean includeProduct = true;
+            if( product.getRamSize().longValue() < minRamSize ) {
+                includeProduct = false;
+            }
+            else if( product.getRootVolumeSize() != null && product.getRootVolumeSize().longValue() < image.getMinimumDiskSizeGb() ) {
+                includeProduct = false;
+            }
+            if( includeProduct ) {
+                products.add(product);
+            }
+        }
+        return products;
+    }
 
     @Override
     public @Nonnull Iterable<VirtualMachineProduct> listProducts(VirtualMachineProductFilterOptions options, Architecture architecture) throws InternalException, CloudException {

@@ -272,6 +272,7 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
         Platform platform = Platform.UNKNOWN;
         long created = 0L;
         Boolean isPublic = null;
+        long minRamSize = 0L;
 
         try {
             if( json.has("id") ) {
@@ -304,11 +305,11 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
             }
             if( json.has("requirements") ) {
                 JSONObject requirements = json.getJSONObject("requirements");
-                if( requirements.length() > 0 ) {
-                    // TODO: Allow image requirements in MachineImage
-                    // MachineImage does not currently allow requirements to be communicated,
-                    // therefore we will not be able to satisfy them.
-                    return null;
+                if( requirements.has("min_ram") ) {
+                    minRamSize = requirements.getLong("min_ram");
+                }
+                else if( requirements.has("min_memory") ) {
+                    minRamSize = requirements.getLong("min_memory");
                 }
             }
         } catch( JSONException e ) {
@@ -324,12 +325,15 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
             description = name + " (" + platform + ") [#" + imageId + "]";
         }
         //old version only supported public images and did not return owner attribute
-        final MachineImage machineImage = MachineImage.getMachineImageInstance(owner, regionId, imageId, MachineImageState.ACTIVE, name, description, architecture, platform).createdAt(created);
+        final MachineImage machineImage = MachineImage.getInstance(owner, regionId, imageId, ImageClass.MACHINE, MachineImageState.ACTIVE, name, description, architecture, platform).createdAt(created);
         if (isPublic != null) {
             machineImage.setTag("public", String.valueOf(isPublic));
             if( isPublic ) {
                 machineImage.sharedWithPublic();
             }
+        }
+        if( minRamSize > 0L ) {
+            machineImage.getProviderMetadata().put("min_ram", String.valueOf(minRamSize));
         }
         return machineImage;
 
