@@ -553,6 +553,9 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
             if( ob.has("name") ) {
                 vm.setName(ob.getString("name"));
             }
+            if( ob.has("package") ) {
+                vm.setProductId(ob.getString("package"));
+            }
             if( ob.has("ips") ) {
                 JSONArray ips = ob.getJSONArray("ips");
                 ArrayList<String> pubIp = new ArrayList<String>();
@@ -614,9 +617,9 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
                         else if( name.equals("dsnTrueImage") ) {
                             vm.setProviderMachineImageId(md.getString(name));
                         }
-                        else if( name.equals("dsnTrueProduct") ) {
-                            vm.setProductId(md.getString(name));
-                        }
+//                        else if( name.equals("dsnTrueProduct") ) {
+//                            vm.setProductId(md.getString(name));
+//                        }
                         else {
                             vm.addTag(name, md.getString(name));
                         }
@@ -670,9 +673,9 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
                         break;
                     }
                 }
-                if( vm.getProductId() == null ) {
-                    vm.setProductId(d.getProviderProductId());
-                }
+//                if( vm.getProductId() == null && d != null ) {
+//                    vm.setProductId(d.getProviderProductId());
+//                }
             }
             return vm;
         }
