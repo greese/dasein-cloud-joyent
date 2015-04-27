@@ -26,8 +26,10 @@ import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.joyent.JoyentException;
 import org.dasein.cloud.joyent.JoyentMethod;
 import org.dasein.cloud.joyent.SmartDataCenter;
+import org.dasein.cloud.util.APITrace;
 import org.dasein.cloud.util.Cache;
 import org.dasein.cloud.util.CacheLevel;
+import org.dasein.cloud.util.TagUtils;
 import org.dasein.util.CalendarWrapper;
 import org.dasein.util.uom.storage.Megabyte;
 import org.dasein.util.uom.storage.Storage;
@@ -786,5 +788,95 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
         	name.deleteCharAt(name.length()-1);
         }
         return name.toString();
+    }
+
+    @Override
+    public void setTags(@Nonnull String vmId, @Nonnull Tag... tags) throws CloudException, InternalException {
+    	APITrace.begin(getProvider(), "Server.createTags");
+    	try {
+    		try{
+    			JoyentMethod method = new JoyentMethod(provider);
+    			method.doDelete(provider.getEndpoint(), "machines/" + vmId + "/tags");
+    			// Delete tags takes time to reflect
+    			do {
+    				try { Thread.sleep(4000); }
+    				catch( InterruptedException e ) { /* ignore */ }
+    			} while (!method.doGetJson(provider.getEndpoint(), "machines/" + vmId + "/tags").equals("{}"));
+    		}
+    		catch(CloudException e){
+    			logger.error("Error while deleting all tags for - " + vmId + ".", e);
+    		}
+    		updateTags(vmId, tags);
+    	}
+    	finally {
+    		APITrace.end();
+    	}
+    }
+
+    @Override
+    public void setTags(@Nonnull String[] vmIds, @Nonnull Tag... tags) throws CloudException, InternalException {
+    	for (String vmId : vmIds) {
+    		removeTags(vmId , tags);
+    	}
+    }
+
+    @Override
+    public void updateTags(@Nonnull String vmId, @Nonnull Tag... tags) throws CloudException, InternalException {
+    	APITrace.begin(getProvider(), "Server.updateTags");
+    	try {
+    		try{
+    			JoyentMethod method = new JoyentMethod(provider);
+    			Map<String, Object> post = new HashMap<String,Object>();
+    			for (int i = 0; i < tags.length; i++){
+    				post.put(tags[i].getKey(), tags[i].getValue() == null ? "" : tags[i].getValue());
+    			}    		
+    			method.doPostString(provider.getEndpoint(), "machines/"+ vmId +"/tags", new JSONObject(post).toString());
+    		}
+    		catch(CloudException e){
+    			logger.error("Error while creating the tags for - " + vmId + ".", e);
+    		}
+    	}
+    	finally {
+    		APITrace.end();
+    	}
+    }
+
+    @Override
+    public void updateTags(@Nonnull String[] vmIds, @Nonnull Tag... tags) throws CloudException, InternalException {
+    	for( String vmId : vmIds ) {
+    		updateTags(vmId, tags);
+    	}
+    }
+
+    @Override
+    public void removeTags(@Nonnull String vmId, @Nonnull Tag... tags) throws CloudException, InternalException {
+    	APITrace.begin(getProvider(), "Server.removeTags");
+    	try {
+    		JoyentMethod method = new JoyentMethod(provider);
+    		for (int i = 0; i < tags.length; i++) {
+    			try{
+    				method.doDelete(provider.getEndpoint(), "machines/" + vmId + "/tags/" + tags[i].getKey());
+
+    				// Delete tags takes time to reflect
+    				while (method.doGetJson(provider.getEndpoint(), "machines/" + vmId + "/tags/" + tags[i].getKey()) != null) {
+    					try { Thread.sleep(4000); }
+    					catch( InterruptedException e ) { /* ignore */ }
+    				}
+    			}
+    			catch(CloudException e){
+    				logger.error("Error while deleting the tags for - " + vmId + ".", e);
+    			}
+    		}
+    	}
+    	finally {
+    		APITrace.end();
+    	}
+    }
+
+    @Override
+    public void removeTags(@Nonnull String[] vmIds, @Nonnull Tag... tags) throws CloudException, InternalException {
+    	for (String vmId : vmIds) {
+    		removeTags(vmId , tags);
+    	}
     }
 }
