@@ -816,7 +816,7 @@ public class Machine extends AbstractVMSupport<SmartDataCenter> {
     @Override
     public void setTags(@Nonnull String[] vmIds, @Nonnull Tag... tags) throws CloudException, InternalException {
     	for (String vmId : vmIds) {
-    		removeTags(vmId , tags);
+    		setTags(vmId , tags);
     	}
     }
 
