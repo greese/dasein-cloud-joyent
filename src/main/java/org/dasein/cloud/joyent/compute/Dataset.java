@@ -258,14 +258,14 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
         }
     }
 
-    private @Nullable MachineImage toMachineImage( @Nullable JSONObject json ) throws CloudException {
+    private @Nullable MachineImage toMachineImage( @Nullable JSONObject json ) throws CloudException, InternalException {
         if( json == null ) {
             return null;
         }
         String regionId = getContext().getRegionId();
 
         if( regionId == null ) {
-            throw new CloudException("No region ID was specified for this request");
+            throw new InternalException("No region ID was specified for this request");
         }
         String imageId = null, name = null, description = null, version = null, owner = "--joyent--";
         Architecture architecture = Architecture.I64;
