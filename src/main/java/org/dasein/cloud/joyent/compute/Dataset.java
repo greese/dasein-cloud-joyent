@@ -258,16 +258,16 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
         }
     }
 
-    private @Nullable MachineImage toMachineImage( @Nullable JSONObject json ) throws CloudException {
+    private @Nullable MachineImage toMachineImage( @Nullable JSONObject json ) throws CloudException, InternalException {
         if( json == null ) {
             return null;
         }
         String regionId = getContext().getRegionId();
 
         if( regionId == null ) {
-            throw new CloudException("No region ID was specified for this request");
+            throw new InternalException("No region ID was specified for this request");
         }
-        String imageId = null, name = null, description = null, version = null, owner = "--joyent--";
+        String imageId, name, description, version, owner = "--joyent--";
         Architecture architecture = Architecture.I64;
         Platform platform = Platform.UNKNOWN;
         long created = 0L;
@@ -278,11 +278,20 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
             if( json.has("id") ) {
                 imageId = json.getString("id");
             }
+            else {
+                return null;
+            }
             if( json.has("name") ) {
                 name = json.getString("name");
             }
+            else {
+                name = imageId;
+            }
             if( json.has("description") ) {
                 description = json.getString("description");
+            }
+            else {
+                description = name + " (" + platform + ") [#" + imageId + "]";
             }
             if( json.has("os") ) {
                 String os = ( name == null ? json.getString("os") : name + " " + json.getString("os") );
@@ -314,15 +323,6 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
             }
         } catch( JSONException e ) {
             throw new CloudException(e);
-        }
-        if( imageId == null ) {
-            return null;
-        }
-        if( name == null ) {
-            name = imageId;
-        }
-        if( description == null ) {
-            description = name + " (" + platform + ") [#" + imageId + "]";
         }
         //old version only supported public images and did not return owner attribute
         final MachineImage machineImage = MachineImage.getInstance(owner, regionId, imageId, ImageClass.MACHINE, MachineImageState.ACTIVE, name, description, architecture, platform).createdAt(created);
