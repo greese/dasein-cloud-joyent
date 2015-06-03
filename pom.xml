@@ -236,8 +236,8 @@
                     </systemProperties>
                     <excludes>
                         <exclude>**/TestSuite.java</exclude>
-                    <!--    <exclude>**/storage/MantaStorageSmokeTest.java</exclude>
-                        <exclude>**/storage/MantaStorageTest.java</exclude> -->
+                        <exclude>**/storage/MantaStorageSmokeTest.java</exclude>
+                        <exclude>**/storage/MantaStorageTest.java</exclude>
                     </excludes>
                     <argLine>-Dapple.awt.UIElement=true</argLine>
                 </configuration>
