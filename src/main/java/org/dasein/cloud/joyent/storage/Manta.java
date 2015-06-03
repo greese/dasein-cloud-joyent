@@ -30,10 +30,7 @@ import org.apache.log4j.Logger;
 import org.dasein.cloud.*;
 import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.joyent.SmartDataCenter;
-import org.dasein.cloud.storage.AbstractBlobStoreSupport;
-import org.dasein.cloud.storage.Blob;
-import org.dasein.cloud.storage.BlobStoreSupport;
-import org.dasein.cloud.storage.FileTransfer;
+import org.dasein.cloud.storage.*;
 import org.dasein.cloud.util.CacheLevel;
 import org.dasein.cloud.util.NamingConstraints;
 import org.dasein.util.uom.storage.*;
@@ -65,6 +62,16 @@ public class Manta extends AbstractBlobStoreSupport<SmartDataCenter>  {
 
     public Manta( SmartDataCenter provider ) throws IOException, CloudException {
         super(provider);
+    }
+
+    private transient volatile MantaCapabilities capabilities;
+
+    @Override
+    public BlobStoreCapabilities getCapabilities() throws CloudException, InternalException{
+        if(capabilities == null){
+            capabilities = new MantaCapabilities(getProvider());
+        }
+        return capabilities;
     }
 
     /**

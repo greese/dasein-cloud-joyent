@@ -32,24 +32,22 @@ import java.io.IOException;
 /**
  * @author ilya.drabenia
  */
-public class MantaStorageServices extends AbstractStorageServices {
+public class MantaStorageServices extends AbstractStorageServices<SmartDataCenter> {
     private static final Logger logger = SmartDataCenter.getLogger(MantaStorageServices.class, "std");
-    private SmartDataCenter provider;
 
     public MantaStorageServices(SmartDataCenter provider) {
-        this.provider = provider;
+        super(provider);
     }
 
-    @Nullable
     @Override
-    public BlobStoreSupport getOnlineStorageSupport() {
+    public @Nullable BlobStoreSupport getOnlineStorageSupport() {
         BlobStoreSupport storeSupport = null;
         try {
-            storeSupport = new Manta(provider);
+            storeSupport = new Manta(getProvider());
         } catch (IOException e) {
-            logger.error("Could not initialize Manta Storage", e);
+            logger.error("Could not initialise Manta Storage", e);
         } catch (CloudException e) {
-            logger.error("Could not initialize Manta Storage", e);
+            logger.error("Could not initialise Manta Storage", e);
         }
         return storeSupport;
     }

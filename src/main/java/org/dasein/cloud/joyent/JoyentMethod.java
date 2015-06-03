@@ -562,7 +562,7 @@ public class JoyentMethod {
 
             logger.debug("HTTP STATUS: " + code);
 
-            if( code != HttpStatus.SC_ACCEPTED && code != HttpStatus.SC_NO_CONTENT && code != HttpStatus.SC_CREATED ) {
+            if( code != HttpStatus.SC_ACCEPTED && code != HttpStatus.SC_NO_CONTENT && code != HttpStatus.SC_CREATED  && code != HttpStatus.SC_OK ) {
                 logger.error("Expected ACCEPTED for POST request, got " + code);
                 String json = null;
 
@@ -595,7 +595,7 @@ public class JoyentMethod {
                 throw new JoyentException(items);
             }
             else {
-                if( code == HttpStatus.SC_ACCEPTED || code == HttpStatus.SC_CREATED ) {
+                if( code == HttpStatus.SC_ACCEPTED || code == HttpStatus.SC_CREATED || code == HttpStatus.SC_OK ) {
                     String json = null;
 
                     try {

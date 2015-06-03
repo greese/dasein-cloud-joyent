@@ -22,6 +22,7 @@ package org.dasein.cloud.joyent.compute;
 import org.dasein.cloud.*;
 import org.dasein.cloud.compute.*;
 import org.dasein.cloud.joyent.SmartDataCenter;
+import org.dasein.cloud.util.NamingConstraints;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -131,4 +132,9 @@ public class DatasetCapabilities extends AbstractCapabilities<SmartDataCenter> i
 
     @Override
     public boolean imageCaptureDestroysVM() throws CloudException, InternalException{return false;}
+
+    @Override
+    public @Nonnull NamingConstraints getImageNamingConstraints() throws CloudException, InternalException {
+        return NamingConstraints.getAlphaNumeric(1, 512).constrainedBy('.', '-');
+    }
 }

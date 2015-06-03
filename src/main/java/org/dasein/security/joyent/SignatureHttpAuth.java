@@ -82,7 +82,11 @@ public class SignatureHttpAuth implements JoyentHttpAuth {
                 }
             }
 
-            signature.initSign(getKeyPair(privateKey, keyPassword).getPrivate());
+            KeyPair keyPair = getKeyPair(privateKey, keyPassword);
+            if( keyPair == null ) {
+                throw new InternalException("Unable to generate a key-pair from key data.");
+            }
+            signature.initSign(keyPair.getPrivate());
             String signingString = String.format(AUTH_SIGN, now);
             signature.update(signingString.getBytes("UTF-8"));
             byte[] signedDate = signature.sign();
@@ -103,7 +107,7 @@ public class SignatureHttpAuth implements JoyentHttpAuth {
         }
     }
 
-    private KeyPair getKeyPair(String privateKeyContent, @Nullable final char[] password) throws IOException {
+    private @Nullable KeyPair getKeyPair(String privateKeyContent, @Nullable final char[] password) throws IOException {
         InputStream is = new ByteArrayInputStream(privateKeyContent.getBytes());
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
         PEMReader pemReader = null;
