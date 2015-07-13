@@ -38,8 +38,19 @@ import org.json.JSONObject;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class Dataset extends AbstractImageSupport<SmartDataCenter> {
+    private static final String[] VALID_CAPTURE_OS = {
+            "base",
+            "base64",
+            "centos-6",
+            "debian-7",
+            "ubuntu-certified-14.04",
+            "ubuntu-certified-13.10",
+            "ubuntu-certified-12.04"
+    };
+    private static final String OWNER_JOYENT = "--joyent--";
     private volatile transient DatasetCapabilities capabilities;
 
     Dataset( @Nonnull SmartDataCenter sdc ) {
@@ -58,11 +69,27 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
     protected MachineImage capture( @Nonnull ImageCreateOptions options, @Nullable AsynchronousTask<MachineImage> task ) throws CloudException, InternalException {
         APITrace.begin(getProvider(), "Image.capture");
         try {
-            VirtualMachine vm;
-
-            vm = getProvider().getComputeServices().getVirtualMachineSupport().getVirtualMachine(options.getVirtualMachineId());
+            VirtualMachine vm = getProvider().getComputeServices().getVirtualMachineSupport().getVirtualMachine(options.getVirtualMachineId());
             if( vm == null ) {
                 throw new CloudException("Virtual machine not found: " + options.getVirtualMachineId());
+            }
+            String originalImageId = vm.getProviderMachineImageId();
+            if( originalImageId == null ) {
+                throw new CloudException("Image capture is not supported for this VM, original image is unknown.");
+            }
+            MachineImage originalImage = getImage(originalImageId);
+            if( !OWNER_JOYENT.equalsIgnoreCase(originalImage.getProviderOwnerId()) ) {
+                throw new CloudException("Image capture is not supported for VMs launched from custom images.");
+            }
+            boolean validOs = false;
+            for( String os : VALID_CAPTURE_OS ) {
+                if( originalImage.getName().startsWith(os) ) {
+                    validOs = true;
+                    break;
+                }
+            }
+            if( !validOs ) {
+                throw new CloudException("Image capture is not supported for this VM, the OS of the original image is not supported.");
             }
             if( task != null ) {
                 task.setStartTime(System.currentTimeMillis());
@@ -83,15 +110,22 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
             post.put("version", version);
             String json = method.doPostString(getProvider().getEndpoint(), "images", new JSONObject(post).toString());
             if( json == null ) {
-                throw new CloudException("No machine was created");
+                throw new CloudException("No image was created");
             }
 
-            MachineImage img;
+            MachineImage img = null;
             try {
-                img = toMachineImage(new JSONObject(json));
+                JSONObject jsonObject = new JSONObject(json);
+                if( jsonObject.has("id") ) {
+                    img = getImage(jsonObject.getString("id"));
+                }
             } catch( JSONException e ) {
                 throw new CloudException(e);
             }
+            if( img == null ) {
+                throw new CloudException("No image was created");
+            }
+
             if( task != null ) {
                 task.completeWithResult(img);
             }
@@ -103,11 +137,6 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
 
     @Override
     public MachineImage getImage( @Nonnull String providerImageId ) throws CloudException, InternalException {
-        ProviderContext ctx = getProvider().getContext();
-
-        if( ctx == null ) {
-            throw new CloudException("No context has been defined for this request");
-        }
         JoyentMethod method = new JoyentMethod(getProvider());
 
         try {
@@ -124,11 +153,6 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
 
     @Override
     public boolean isImageSharedWithPublic( @Nonnull String machineImageId ) throws CloudException, InternalException {
-        ProviderContext ctx = getProvider().getContext();
-
-        if( ctx == null ) {
-            throw new CloudException("No context has been defined for this request");
-        }
         JoyentMethod method = new JoyentMethod(getProvider());
 
         try {
@@ -176,11 +200,6 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
     public @Nonnull Iterable<MachineImage> listImages( @Nullable ImageFilterOptions options ) throws CloudException, InternalException {
         APITrace.begin(getProvider(), "Image.listImages");
         try {
-            ProviderContext ctx = getProvider().getContext();
-
-            if( ctx == null ) {
-                throw new CloudException("No context has been defined for this request");
-            }
             JoyentMethod method = new JoyentMethod(getProvider());
 
             try {
@@ -219,10 +238,6 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
     public void remove( @Nonnull String providerImageId, boolean checkState ) throws CloudException, InternalException {
         APITrace.begin(getProvider(), "Image.remove");
         try {
-            ProviderContext ctx = getContext();
-            if( ctx == null ) {
-                throw new CloudException("No context has been defined for this request");
-            }
             JoyentMethod method = new JoyentMethod(getProvider());
 
             method.doDelete(getProvider().getEndpoint(), "images/" + providerImageId);
@@ -233,11 +248,6 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
 
     @Override
     public @Nonnull Iterable<MachineImage> searchPublicImages( @Nonnull ImageFilterOptions options ) throws CloudException, InternalException {
-        ProviderContext ctx = getProvider().getContext();
-
-        if( ctx == null ) {
-            throw new CloudException("No context has been defined for this request");
-        }
         JoyentMethod method = new JoyentMethod(getProvider());
 
         try {
@@ -267,13 +277,13 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
         if( regionId == null ) {
             throw new InternalException("No region ID was specified for this request");
         }
-        String imageId, name, description, version, owner = "--joyent--";
+        String imageId, name, description, version, owner = OWNER_JOYENT;
         Architecture architecture = Architecture.I64;
         Platform platform = Platform.UNKNOWN;
         long created = 0L;
         Boolean isPublic = null;
         long minRamSize = 0L;
-
+        MachineImageState state = MachineImageState.PENDING;
         try {
             if( json.has("id") ) {
                 imageId = json.getString("id");
@@ -295,11 +305,8 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
             }
             if( json.has("os") ) {
                 String os = ( name == null ? json.getString("os") : name + " " + json.getString("os") );
-
                 platform = Platform.guess(os);
-                if( os.contains("32") ) {
-                    architecture = Architecture.I32;
-                }
+                architecture = guessArch(os);
             }
             if( json.has("created") ) {
                 created = getProvider().parseTimestamp(json.getString("created"));
@@ -310,7 +317,7 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
             }
             if( json.has("public") ) {
                 isPublic = json.getBoolean("public");
-                owner = isPublic ? "--joyent--" : getContext().getAccountNumber();
+                owner = isPublic ? OWNER_JOYENT : getContext().getAccountNumber();
             }
             if( json.has("requirements") ) {
                 JSONObject requirements = json.getJSONObject("requirements");
@@ -321,11 +328,19 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
                     minRamSize = requirements.getLong("min_memory");
                 }
             }
+            if( json.has("state") ) {
+                if( "active".equalsIgnoreCase(json.getString("state")) ) {
+                    state = MachineImageState.ACTIVE;
+                }
+            }
         } catch( JSONException e ) {
             throw new CloudException(e);
         }
         //old version only supported public images and did not return owner attribute
-        final MachineImage machineImage = MachineImage.getInstance(owner, regionId, imageId, ImageClass.MACHINE, MachineImageState.ACTIVE, name, description, architecture, platform).createdAt(created);
+        final MachineImage machineImage = MachineImage.getInstance(
+                owner, regionId, imageId, ImageClass.MACHINE, state, name, description, architecture, platform
+        ).createdAt(created);
+
         if (isPublic != null) {
             machineImage.setTag("public", String.valueOf(isPublic));
             if( isPublic ) {
@@ -337,5 +352,30 @@ public class Dataset extends AbstractImageSupport<SmartDataCenter> {
         }
         return machineImage;
 
+    }
+
+    private static boolean surroundedByDigits(String hay, String needle ) throws Exception {
+        hay = " " + hay + " ";
+        int index = hay.indexOf(needle);
+        if( index > 0 ) {
+            if( Character.isDigit(hay.charAt(index-1)) && Character.isDigit(hay.charAt(index+needle.length())) )
+                return true;
+            else {
+                return false;
+            }
+        }
+        throw new Exception(); // not found the needle
+    }
+
+    private static Architecture guessArch(String testString) {
+        String[] needles = {"32", "386"};
+        for( String needle : needles ) {
+            try {
+                if( !surroundedByDigits(testString, needle) ) {
+                    return Architecture.I32;
+                }
+            } catch(Exception e) {}
+        }
+        return Architecture.I64;
     }
 }

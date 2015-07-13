@@ -118,7 +118,7 @@ public class MachineCapabilities extends AbstractCapabilities<SmartDataCenter> i
     @Nonnull
     @Override
     public NamingConstraints getVirtualMachineNamingConstraints() throws CloudException, InternalException {
-        return NamingConstraints.getAlphaNumeric(1, 255).constrainedBy('-', '_');
+        return NamingConstraints.getAlphaNumeric(1, 255).constrainedBy('-', '.');
     }
 
     @Nullable
