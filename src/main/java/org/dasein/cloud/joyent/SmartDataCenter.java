@@ -107,7 +107,7 @@ public class SmartDataCenter extends AbstractCloud {
         if( ctx == null ) {
             throw new CloudException("No context has been established for this request");
         }
-        String e = ctx.getEndpoint();
+        String e = ctx.getCloud().getEndpoint();
         
         if( e == null ) { 
             e = "https://us-west-1.api.joyentcloud.com";
