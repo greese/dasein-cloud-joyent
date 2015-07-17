@@ -60,7 +60,7 @@ public class MachineCapabilities extends AbstractCapabilities<SmartDataCenter> i
 
     @Override
     public boolean canReboot(@Nonnull VmState fromState) throws CloudException, InternalException {
-        return true;
+        return VmState.RUNNING.equals(fromState);
     }
 
     @Override
@@ -70,12 +70,12 @@ public class MachineCapabilities extends AbstractCapabilities<SmartDataCenter> i
 
     @Override
     public boolean canStart(@Nonnull VmState fromState) throws CloudException, InternalException {
-        return !fromState.equals(VmState.RUNNING);
+        return !VmState.RUNNING.equals(fromState);
     }
 
     @Override
     public boolean canStop(@Nonnull VmState fromState) throws CloudException, InternalException {
-        return !fromState.equals(VmState.STOPPED);
+        return !VmState.STOPPED.equals(fromState);
     }
 
     @Override
@@ -85,7 +85,7 @@ public class MachineCapabilities extends AbstractCapabilities<SmartDataCenter> i
 
     @Override
     public boolean canTerminate(@Nonnull VmState fromState) throws CloudException, InternalException {
-        return !fromState.equals(VmState.TERMINATED);
+        return !VmState.TERMINATED.equals(fromState);
     }
 
     @Override
